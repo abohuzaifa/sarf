@@ -34,7 +34,7 @@ import '../../../services/notification_services.dart';
 import '../../utils/navigation_observer.dart';
 import '../Invoices/invoice_members_home.dart';
 import '../base_controller.dart';
-
+import 'package:qr_flutter/qr_flutter.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -3765,12 +3765,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                                     height: 80,
                                                     child: Container(
                                                       color: R.colors.white,
-                                                      child: QrImageView(
+                                                   /*   child: mageView(
                                                         data: ctr.qrCode.value,
                                                         version:
                                                             QrVersions.auto,
                                                         size: 100.0,
-                                                      ),
+                                                      ),*/
                                                       // QrImage(
                                                       //           data: ctr.qrCode.value,
                                                       //           version: QrVersions.auto,
@@ -4647,11 +4647,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                             height: 80,
                                             child: Container(
                                               color: R.colors.white,
-                                              child: QrImageView(
+                                           /*   child: QrImageView(
                                                 data: ctr.qrCode.value,
                                                 version: QrVersions.auto,
                                                 size: 100.0,
-                                              ),
+                                              ),*/
                                               // QrImage(
                                               //           data: ctr.qrCode.value,
                                               //           version: QrVersions.auto,

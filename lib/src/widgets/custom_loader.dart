@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 showLoaderDialog(BuildContext context) {
-  AlertDialog alert = const AlertDialog(
+  AlertDialog alert =  AlertDialog(
     insetPadding: EdgeInsets.symmetric(horizontal: 100),
     shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(10.0))),
