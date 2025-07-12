@@ -10,7 +10,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_core
   geolocator_windows
   permission_handler_windows
-  platform_device_id_windows
   share_plus
   url_launcher_windows
 )
