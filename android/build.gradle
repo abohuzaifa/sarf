@@ -1,12 +1,12 @@
 buildscript {
-    ext.kotlin_version = '1.8.22'
+    ext.kotlin_version = '1.8.20'
     repositories {
         google()
         mavenCentral()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.4.2'
+        classpath 'com.android.tools.build:gradle:7.1.2'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath 'com.google.gms:google-services:4.3.13'
     }
@@ -14,13 +14,9 @@ buildscript {
 
 // Then make sure all plugins use this version by adding:
 allprojects {
-    configurations.all {
-        resolutionStrategy {
-            force "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-            force "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-            force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-        }
+    repositories {
+        google()
+        mavenCentral()
     }
 }
 

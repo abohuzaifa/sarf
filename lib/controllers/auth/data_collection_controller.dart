@@ -21,7 +21,7 @@ class DataCollectionController extends GetxController {
   @override
   void onInit() async {
     // GetStorage().write('lang', 'en');
-    await dataCollection();
+ //   await dataCollection();
     super.onInit();
   }
 

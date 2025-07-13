@@ -360,7 +360,7 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
   }
 
   getData() async {
-    await dataCollectionController.dataCollection();
+    // await dataCollectionController.dataCollection();
     for (var city in dataCollectionController.cities!) {
       if (city.countryId == ctr.selectedCountry.value) {
         cities.add(city);
