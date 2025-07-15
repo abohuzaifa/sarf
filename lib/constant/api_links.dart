@@ -20,7 +20,7 @@ class ApiLinks {
   static const String cityList = '$base/cities_members';
   static const String getHome = '$base/user';
   static const String addBudget = '$base/budget/add';
-  static const String data_collection = '$base/data_collection?language=';
+  static const String data_collection = '$base/data_collection';
   static const String registration = '$base/user/registration';
   static const String getSupportTypes = '$base/app_support/type?language=';
   static const String forgotPassword = '$base/forget_password';

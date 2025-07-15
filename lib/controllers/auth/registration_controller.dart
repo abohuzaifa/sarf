@@ -46,6 +46,13 @@ class RegistrationController extends GetxController {
   File? profileImage;
   NotificationServices notificationServices = NotificationServices();
 
+
+  @override
+  void onInit() {
+    // TODO: implement onInit
+    super.onInit();
+  }
+
   String replaceArabicNumber(String input) {
     const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
     const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -60,7 +67,8 @@ class RegistrationController extends GetxController {
   Future registration(
     String mob,
     String country_id,
-  ) async {
+  ) async
+  {
     openLoader();
     // debugPrint("here");
     ddio.FormData formData = ddio.FormData();

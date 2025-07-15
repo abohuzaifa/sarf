@@ -152,7 +152,7 @@ class _RegistrationState extends State<Registration> {
                                             children: [
                                               Image.network("https://sarfapp.com/${singleData!.flag}",width: 40,height: 40,),
                                               const SizedBox(width: 5,),
-                                              Text(GetStorage().read("lang") == "en" ? singleData.name?.en ?? '' :  singleData.name?.ar ?? ''),
+                                              Text(GetStorage().read("lang") == "en" ? singleData.name.toString()?? '' :  singleData.name.toString()?? ''),
                   
                   
                                             ],
@@ -255,7 +255,7 @@ class _RegistrationState extends State<Registration> {
                                         children: [
                                           Image.network("https://sarfapp.com/${singleData!.flag}",width: 40,height: 40,),
                                           const SizedBox(width: 5,),
-                                          Text(GetStorage().read("lang") == "en" ? singleData.name?.en ?? '' :  singleData.name?.ar ?? ''),
+                                          Text(GetStorage().read("lang") == "en" ? singleData.name.toString()?? '' :  singleData.name.toString() ?? ''),
 
 
                                         ],

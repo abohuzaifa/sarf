@@ -40,7 +40,7 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
   RegistrationController registrationController =
       Get.find<RegistrationController>();
   RegisterController ctr = Get.find<RegisterController>();
-  List<Cities> cities = [];
+  List<City> cities = [];
   // FocusNode searchFieldNode = FocusNode();
   int? business;
   int? personal;
@@ -360,15 +360,31 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
   }
 
   getData() async {
-    // await dataCollectionController.dataCollection();
+    print('🚀 Starting getData() function');
+
+    print('🔄 Calling dataCollection() from controller');
+    await dataCollectionController.dataCollection();
+    print('✅ dataCollection() completed');
+
+    print(
+        '🔄 Filtering cities based on selected country (${ctr.selectedCountry.value})');
+    cities.clear(); // Clear existing cities first
     for (var city in dataCollectionController.cities!) {
+      print('🔍 Checking city: ${city.toString()}');
       if (city.countryId == ctr.selectedCountry.value) {
+        print('➕ Adding city: ${city.toString()}');
         cities.add(city);
       }
     }
-    // print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-    // print(cities.toString());
+
+    print('📊 Final cities list:');
+    print("=============================================");
+    print(cities.toString());
+    print("=============================================");
+
+    print('🔄 Updating UI with setState()');
     setState(() {});
+    print('✅ UI update complete');
   }
 
   @override
@@ -1287,9 +1303,7 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
               child: InkWell(
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,
-                onTap: () {
-                  Navigator.pop(context);
-                },
+                onTap: () => Navigator.pop(context),
                 child: GestureDetector(
                   onTap: () {},
                   child: Container(
@@ -1300,7 +1314,6 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
                       child: Container(
                         height: MediaQuery.of(context).size.height / 2,
                         width: MediaQuery.of(context).size.width,
-                        //  margin: const EdgeInsets.symmetric(horizontal: 15.0),
                         decoration: BoxDecoration(
                           color: Colors.grey[200],
                           borderRadius: const BorderRadius.only(
@@ -1311,9 +1324,7 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
                         ),
                         child: Column(
                           children: [
-                            const SizedBox(
-                              height: 20,
-                            ),
+                            const SizedBox(height: 20),
                             Text(
                               'Select City'.tr,
                               style: TextStyle(
@@ -1321,87 +1332,72 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
                                   fontFamily: 'bold',
                                   color: R.colors.buttonColor),
                             ),
-                            const SizedBox(
-                              height: 20,
-                            ),
+                            const SizedBox(height: 20),
                             Expanded(
                               child: Container(
                                 margin:
                                     const EdgeInsets.only(top: 10, bottom: 10),
-                                //  height: MediaQuery.of(context).size.height / 4,
                                 color: R.colors.lightGrey,
                                 width: MediaQuery.of(context).size.width,
                                 child: ListView.builder(
-                                    scrollDirection: Axis.vertical,
-                                    itemCount: cities.length,
-                                    itemBuilder: (BuildContext, index) {
-                                      return InkWell(
-                                        onTap: () {
-                                          selectedCityIndex = index;
-                                          // print(selectedCityIndex);
-                                          setState(() {
-                                            registrationController
-                                                    .finalSelectedCity.value =
-                                                GetStorage().read("lang") ==
-                                                        "ar"
-                                                    ? cities[index]
-                                                        .name!
-                                                        .ar
-                                                        .toString()
-                                                    : cities[index]
-                                                        .name!
-                                                        .en
-                                                        .toString();
-                                          });
-                                          var getCityId =
-                                              cities[selectedCityIndex].id;
+                                  itemCount:
+                                      dataCollectionController.cities?.length ??
+                                          0,
+                                  itemBuilder:
+                                      (BuildContext context, int index) {
+                                    final city =
+                                        dataCollectionController.cities?[index];
+                                    final lang =
+                                        GetStorage().read("lang") ?? "en";
 
-                                          // print(
-                                          //     "This is my selctedCity Id ============${getCityId}");
+                                    // Null checks and safe value retrieval
+                                    final cityName = lang == "ar"
+                                        ? city?.name.toString().toString() ?? ''
+                                        : city?.name.toString().toString() ?? '';
 
-                                          setState(() {
-                                            registrationController.cityId =
-                                                getCityId;
-                                          });
-
-                                          Get.back();
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Container(
-                                            height: 30,
-                                            decoration: BoxDecoration(
+                                    return InkWell(
+                                      onTap: () {
+                                        selectedCityIndex = index;
+                                        setState(() {
+                                          registrationController
+                                              .finalSelectedCity
+                                              .value = cityName;
+                                        });
+                                        registrationController.cityId =
+                                            city?.id ?? 0;
+                                        Navigator.pop(context);
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Container(
+                                          height: 30,
+                                          decoration: BoxDecoration(
+                                            color: selectedCityIndex == index
+                                                ? R.colors.buttonColor
+                                                : Colors.transparent,
+                                            borderRadius:
+                                                BorderRadius.circular(100),
+                                            border:
+                                                Border.all(color: Colors.grey),
+                                          ),
+                                          margin: const EdgeInsets.only(top: 2),
+                                          child: Center(
+                                            child: Text(
+                                              cityName,
+                                              style: TextStyle(
+                                                fontSize: 14,
                                                 color:
                                                     selectedCityIndex == index
-                                                        ? R.colors.buttonColor
-                                                        : Colors.transparent,
-                                                borderRadius:
-                                                    BorderRadius.circular(100),
-                                                border: Border.all(
-                                                    color: Colors.grey)),
-                                            margin:
-                                                const EdgeInsets.only(top: 2),
-                                            child: Center(
-                                              child: Text(
-                                                GetStorage().read("lang") ==
-                                                        "ar"
-                                                    ? cities[index]
-                                                        .name!
-                                                        .ar
-                                                        .toString()
-                                                    : cities[index]
-                                                        .name!
-                                                        .en
-                                                        .toString(),
-                                                style: TextStyle(
-                                                    fontSize: 14,
-                                                    color: R.colors.black),
+                                                        ? Colors.white
+                                                        : R.colors.black,
                                               ),
                                             ),
                                           ),
                                         ),
-                                      );
-                                    }),
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
                             ),
                           ],
@@ -1422,83 +1418,68 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
       builder: (BuildContext context) {
         return StatefulBuilder(builder: (context, setState) {
           return Material(
-            type: MaterialType.transparency,
-            child: InkWell(
-              splashColor: Colors.transparent,
-              highlightColor: Colors.transparent,
-              onTap: () {
-                Navigator.pop(context);
-              },
-              child: GestureDetector(
-                onTap: () {},
-                child: Container(
-                  height: MediaQuery.of(context).size.height / 2,
-                  width: MediaQuery.of(context).size.width,
-                  margin: const EdgeInsets.symmetric(horizontal: 15.0),
-                  child: Center(
-                    child: Container(
-                      height: MediaQuery.of(context).size.height / 2,
-                      width: MediaQuery.of(context).size.width,
-                      //  margin: const EdgeInsets.symmetric(horizontal: 15.0),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(15.0),
-                            topRight: Radius.circular(12.0),
-                            bottomLeft: Radius.circular(8.0),
-                            bottomRight: Radius.circular(8.0)),
-                      ),
-                      child: Column(
-                        children: [
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          Text(
-                            'Select Type'.tr,
-                            style: TextStyle(
-                                fontSize: 18,
-                                fontFamily: 'bold',
-                                color: R.colors.buttonColor),
-                          ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          Expanded(
-                            child: Container(
-                              margin:
-                                  const EdgeInsets.only(top: 10, bottom: 10),
-                              //  height: MediaQuery.of(context).size.height / 4,
-                              color: R.colors.lightGrey,
-                              width: MediaQuery.of(context).size.width,
-                              child: ListView.builder(
-                                  scrollDirection: Axis.vertical,
+              type: MaterialType.transparency,
+              child: InkWell(
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+                onTap: () => Navigator.pop(context),
+                child: GestureDetector(
+                  onTap: () {},
+                  child: Container(
+                    height: MediaQuery.of(context).size.height / 2,
+                    width: MediaQuery.of(context).size.width,
+                    margin: const EdgeInsets.symmetric(horizontal: 15.0),
+                    child: Center(
+                      child: Container(
+                        height: MediaQuery.of(context).size.height / 2,
+                        width: MediaQuery.of(context).size.width,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(15.0),
+                              topRight: Radius.circular(12.0),
+                              bottomLeft: Radius.circular(8.0),
+                              bottomRight: Radius.circular(8.0)),
+                        ),
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 20),
+                            Text(
+                              'Select Type'.tr,
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  fontFamily: 'bold',
+                                  color: R.colors.buttonColor),
+                            ),
+                            const SizedBox(height: 20),
+                            Expanded(
+                              child: Container(
+                                margin:
+                                    const EdgeInsets.only(top: 10, bottom: 10),
+                                color: R.colors.lightGrey,
+                                width: MediaQuery.of(context).size.width,
+                                child: ListView.builder(
                                   itemCount:
                                       dataCollectionController.types!.length,
-                                  itemBuilder: (BuildContext, index) {
+                                  itemBuilder:
+                                      (BuildContext context, int index) {
                                     return InkWell(
                                       onTap: () {
                                         selectedTypeIndex = index;
-                                        // print(selectedTypeIndex);
                                         registrationController
                                                 .finalSelectedType.value =
                                             GetStorage().read("lang") == "ar"
                                                 ? dataCollectionController
-                                                    .types![index].expenseNameAr
+                                                    .types![index]
                                                     .toString()
                                                 : dataCollectionController
-                                                    .types![index].expenseName
+                                                    .types![index]
                                                     .toString();
-
-                                        var getTypeId = dataCollectionController
-                                            .types![index].id
-                                            .toString();
-                                        // print(
-                                        //     "This is my typeCity Id ============${getTypeId}");
-                                        setState(() {
-                                          registrationController
-                                              .expense_typeId = getTypeId;
-                                        });
-                                        Get.back();
+                                        registrationController.expense_typeId =
+                                            dataCollectionController
+                                                .types![index].id
+                                                .toString();
+                                        Navigator.pop(context);
                                       },
                                       child: Padding(
                                         padding: const EdgeInsets.all(8.0),
@@ -1525,23 +1506,26 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
                                                       .toString(),
                                               style: TextStyle(
                                                   fontSize: 14,
-                                                  color: R.colors.black),
+                                                  color:
+                                                      selectedTypeIndex == index
+                                                          ? Colors.white
+                                                          : R.colors.black),
                                             ),
                                           ),
                                         ),
                                       ),
                                     );
-                                  }),
+                                  },
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          );
+              ));
         });
       },
     );
@@ -1557,6 +1541,15 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
       ),
       child: InkWell(
         onTap: () {
+          if (dataCollectionController.cities!.isEmpty) {
+            Get.snackbar(
+              'Alert'.tr,
+              'No cities available'.tr,
+              snackPosition: SnackPosition.TOP,
+              backgroundColor: R.colors.themeColor,
+            );
+            return;
+          }
           FocusScope.of(context).unfocus();
           openPopUpOptionsForCities();
         },
@@ -1565,19 +1558,20 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
           child: Row(
             children: [
               Expanded(
-                  child: Obx(() => Text(
-                        registrationController.finalSelectedCity.value != ''
-                            ? registrationController.finalSelectedCity.value
-                            : 'Select City'.tr,
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontFamily: 'medium',
-                            color: registrationController
-                                        .finalSelectedCity.value !=
-                                    ''
+                child: Obx(() => Text(
+                      registrationController.finalSelectedCity.value != ''
+                          ? registrationController.finalSelectedCity.value
+                          : 'Select City'.tr,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontFamily: 'medium',
+                        color:
+                            registrationController.finalSelectedCity.value != ''
                                 ? R.colors.black
-                                : R.colors.grey),
-                      ))),
+                                : R.colors.grey,
+                      ),
+                    )),
+              ),
               const Icon(Icons.arrow_drop_down),
             ],
           ),
@@ -1596,6 +1590,16 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
       ),
       child: InkWell(
         onTap: () {
+          if (dataCollectionController.types == null ||
+              dataCollectionController.types!.isEmpty) {
+            Get.snackbar(
+              'Alert'.tr,
+              'No types available'.tr,
+              snackPosition: SnackPosition.TOP,
+              backgroundColor: R.colors.themeColor,
+            );
+            return;
+          }
           openPopUpOptionsForTypes();
         },
         child: Container(
@@ -1603,19 +1607,20 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
           child: Row(
             children: [
               Expanded(
-                  child: Obx(() => Text(
-                        registrationController.finalSelectedType.value != ''
-                            ? registrationController.finalSelectedType.value
-                            : 'Select Type'.tr,
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontFamily: 'medium',
-                            color: registrationController
-                                        .finalSelectedType.value !=
-                                    ''
+                child: Obx(() => Text(
+                      registrationController.finalSelectedType.value != ''
+                          ? registrationController.finalSelectedType.value
+                          : 'Select Type'.tr,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontFamily: 'medium',
+                        color:
+                            registrationController.finalSelectedType.value != ''
                                 ? R.colors.black
-                                : R.colors.grey),
-                      ))),
+                                : R.colors.grey,
+                      ),
+                    )),
+              ),
               const Icon(Icons.arrow_drop_down),
             ],
           ),

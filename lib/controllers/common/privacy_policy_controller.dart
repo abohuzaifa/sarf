@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:sarf/controllers/auth/register_controller.dart';
@@ -22,82 +23,125 @@ class PrivacyController extends GetxController {
     super.onInit();
   }
 
-  Future privacy() async {
-    //check validation
-    // final isValid = loginFormKey.currentState!.validate();
-    // if (!isValid) {
-    //   return;
-    // }
-    // loginFormKey.currentState!.save();
-    // validation ends
-    // var a = forgotPasswordController.phone.text;
-    // final splitted = a.split('+');
+  Future<void> privacy() async {
+    try {
+      debugPrint('[privacy] Starting privacy API call...');
 
-    var request = {'language': GetStorage().read('lang'), 'id': 2};
-    print("This is my request====================${request}");
+      // Prepare request data
+      final language = GetStorage().read('lang') ?? 'en'; // Default to English
+      final request = {
+        'language': language,
+        'id': 2  // Privacy policy identifier
+      };
+      debugPrint('[privacy] Request data: $request');
 
-    //DialogBoxes.openLoadingDialog();
+      // Show loading dialog
+      // DialogBoxes.openLoadingDialog();
+      debugPrint('[privacy] Showing loading dialog');
 
-    var response =
-        await DioClient().post(ApiLinks.about, request).catchError((error) {
-      if (error is BadRequestException) {
-        Get.back();
+      // Make API call
+      debugPrint('[privacy] Making POST request to ${ApiLinks.about}');
+      final response = await DioClient().post(ApiLinks.about, request).catchError((error) {
+        debugPrint('[privacy] API call failed: ${error.toString()}');
+
+        // Hide loading dialog
+        if (Get.isDialogOpen == true) Get.back();
+
+        String errorMessage = 'An unknown error occurred';
+        Color backgroundColor = R.colors.themeColor;
+
+        if (error is BadRequestException) {
+          debugPrint('[privacy] BadRequestException occurred');
+          try {
+            final apiError = json.decode(error.message!);
+            errorMessage = apiError["reason"]?.toString() ?? error.message ?? 'Bad request';
+            debugPrint('[privacy] Parsed API error: $apiError');
+          } catch (e) {
+            debugPrint('[privacy] Error parsing error message: $e');
+            errorMessage = error.message ?? 'Bad request';
+          }
+        } else if (error is FetchDataException) {
+          debugPrint('[privacy] FetchDataException occurred');
+          errorMessage = 'Failed to connect to server'.tr;
+        } else if (error is ApiNotRespondingException) {
+          debugPrint('[privacy] ApiNotRespondingException occurred');
+          errorMessage = 'Server took too long to respond'.tr;
+        }
+
+        // Show error to user
+        debugPrint('[privacy] Showing error snackbar: $errorMessage');
         Get.snackbar(
           'Error'.tr,
-          '${message}',
+          errorMessage.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: backgroundColor,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 3),
+        );
+
+        return null;
+      });
+
+      // Handle null response
+      if (response == null) {
+        debugPrint('[privacy] Received null response from API');
+        return;
+      }
+
+      debugPrint('[privacy] Full API response received');
+      message = response['message'] ?? 'No message from server';
+      debugPrint('[privacy] API message: $message');
+
+      if (response['success'] == true) {
+        debugPrint('[privacy] API call successful');
+
+        // Parse response
+        userInfo = moreModel.fromJson(response);
+        debugPrint('[privacy] Parsed privacy content: ${userInfo.toString()}');
+
+        // Update UI
+        update();
+        debugPrint('[privacy] UI updated with new privacy content');
+
+        // Optional: Show success message
+        // Get.snackbar(
+        //   'Success'.tr,
+        //   'Privacy policy loaded successfully'.tr,
+        //   snackPosition: SnackPosition.TOP,
+        //   backgroundColor: Colors.green,
+        //   colorText: Colors.white,
+        //   duration: const Duration(seconds: 2),
+        // );
+      } else {
+        debugPrint('[privacy] API returned success: false');
+        if (Get.isDialogOpen == true) Get.back();
+
+        // Show error message
+        debugPrint('[privacy] Showing error snackbar for unsuccessful response');
+        Get.snackbar(
+          'Error'.tr,
+          message.tr,
           snackPosition: SnackPosition.TOP,
           backgroundColor: R.colors.themeColor,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 3),
         );
-        var apiError = json.decode(error.message!);
-        print(apiError.toString());
-
-        // DialogBoxes.showErroDialog(description: apiError["reason"]);
-      } else {
-        Get.back();
-        debugPrint('Something went Wrong');
-        //HandlingErrors().handleError(error);
       }
-    });
-    message = response['message'];
-    // if (response == null) return;
-    debugPrint("This is my response==================$response");
-    if (response['success'] == true) {
-      debugPrint(response.toString());
-      userInfo = moreModel.fromJson(response);
-      print('This is COntent===================${userInfo}');
-      update();
-      //   Get.toNamed(RoutesName.RegistrationDetails);
-      //   userInfo = UserInfo.fromMap(response);
-      //  await  storage.write('user_token', userInfo.token);
-      //  await storage.write('userId', userInfo.user!.id);
-      //  await storage.write('name', userInfo.user!.name);
-      //  await storage.write('username', userInfo.user!.username);
-      //  await storage.write('email', userInfo.user!.email);
-      //  await storage.write('firebase_email', userInfo.user!.firebaseEmail);
-      //  await storage.write('mobile', userInfo.user!.mobile);
-      //  await storage.write('photo', userInfo.user!.photo);
-      //  await storage.write('status', userInfo.user!.status);
-      //   Navigator.of(Get.context!).pop();
+    } catch (e, stackTrace) {
+      debugPrint('[privacy] Unhandled exception: $e');
+      debugPrint('[privacy] Stack trace: $stackTrace');
 
-      //  await createFirebaseUser(GetStorage().read('mobile') + '@gmail.com', GetStorage().read('mobile')).then((value){
-      //     SnakeBars.showSuccessSnake(description: userInfo.message);
-      //     Get.offNamed(Routes.BOTTOM_NAVIGATION);
-      //   }).catchError((error){
-      //     SnakeBars.showErrorSnake(description: error.toString());
-      //   });
+      if (Get.isDialogOpen == true) Get.back();
 
-    } else {
-      Get.back();
       Get.snackbar(
         'Error'.tr,
-        '${message}',
+        'Failed to load privacy policy'.tr,
         snackPosition: SnackPosition.TOP,
-        backgroundColor: R.colors.themeColor,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
       );
-      // SnakeBars.showErrorSnake(description: response['message']);
-      // Navigator.of(Get.context!).pop();
+    } finally {
+      debugPrint('[privacy] Privacy function completed');
     }
-    return null;
-    // return null;
-  }
-}
+  }}

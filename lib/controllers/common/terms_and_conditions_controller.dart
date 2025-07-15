@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:sarf/controllers/auth/register_controller.dart';
@@ -23,83 +24,120 @@ class TermsAndConditionsController extends GetxController {
     super.onInit();
   }
 
-  Future terms() async {
-    //check validation
-    // final isValid = loginFormKey.currentState!.validate();
-    // if (!isValid) {
-    //   return;
-    // }
-    // loginFormKey.currentState!.save();
-    // validation ends
-    // var a = forgotPasswordController.phone.text;
-    // final splitted = a.split('+');
+  Future<void> terms() async {
+    try {
+      debugPrint('[terms] Starting terms and conditions API call...');
 
-    var request = {'language': GetStorage().read('lang'), 'id': 3};
-    print("This is my request====================${request}");
+      // Prepare request data with default language fallback
+      final request = {
+        'language': GetStorage().read('lang') ?? 'en',
+        'id': 3  // Terms and conditions identifier
+      };
+      debugPrint('[terms] Request data: $request');
 
-    //DialogBoxes.openLoadingDialog();
+      // Show loading dialog (uncomment if needed)
+      // DialogBoxes.openLoadingDialog();
+      debugPrint('[terms] Loading dialog shown');
 
-    var response =
-        await DioClient().post(ApiLinks.about, request).catchError((error) {
-      if (error is BadRequestException) {
-        Get.back();
+      // Make API call
+      debugPrint('[terms] Making POST request to ${ApiLinks.about}');
+      final response = await DioClient().post(ApiLinks.about, request).catchError((error) {
+        debugPrint('[terms] API request failed: ${error.toString()}');
+
+        // Hide loading dialog if open
+        if (Get.isDialogOpen == true) Get.back();
+
+        String errorMessage = 'Failed to load terms and conditions';
+        Color backgroundColor = R.colors.themeColor;
+
+        if (error is BadRequestException) {
+          debugPrint('[terms] BadRequestException: ${error.message}');
+          try {
+            final apiError = json.decode(error.message!);
+            errorMessage = apiError["reason"]?.toString() ?? error.message ?? errorMessage;
+          } catch (e) {
+            debugPrint('[terms] Error parsing error message: $e');
+          }
+        } else if (error is FetchDataException) {
+          debugPrint('[terms] FetchDataException: ${error.message}');
+          errorMessage = 'Connection error. Please try again.';
+        } else if (error is ApiNotRespondingException) {
+          debugPrint('[terms] ApiNotRespondingException');
+          errorMessage = 'Server timeout. Please try again later.';
+        }
+
+        // Show error to user
+        debugPrint('[terms] Displaying error to user: $errorMessage');
         Get.snackbar(
           'Error'.tr,
-          '${message}',
+          errorMessage.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: backgroundColor,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 3),
+        );
+
+        return null;
+      });
+
+      // Handle null response
+      if (response == null) {
+        debugPrint('[terms] Received null response from API');
+        return;
+      }
+
+      debugPrint('[terms] API response received: ${response.toString()}');
+      message = response['message'] ?? 'No message from server';
+      debugPrint('[terms] API message: $message');
+
+      if (response['success'] == true) {
+        debugPrint('[terms] API call successful');
+
+        // Parse and store response
+        userInfo = moreModel.fromJson(response);
+        debugPrint('[terms] Parsed terms content: ${userInfo.toString()}');
+
+        // Update UI
+        update();
+        debugPrint('[terms] UI updated with new terms content');
+
+        // Optional success notification
+        // Get.snackbar(
+        //   'Success'.tr,
+        //   'Terms loaded successfully'.tr,
+        //   snackPosition: SnackPosition.TOP,
+        //   backgroundColor: Colors.green,
+        //   duration: const Duration(seconds: 1),
+        // );
+      } else {
+        debugPrint('[terms] API returned success: false');
+        if (Get.isDialogOpen == true) Get.back();
+
+        // Show API error message
+        debugPrint('[terms] Displaying API error to user');
+        Get.snackbar(
+          'Error'.tr,
+          message.tr,
           snackPosition: SnackPosition.TOP,
           backgroundColor: R.colors.themeColor,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 3),
         );
-        var apiError = json.decode(error.message!);
-        print(apiError.toString());
-
-        // DialogBoxes.showErroDialog(description: apiError["reason"]);
-      } else {
-        Get.back();
-        debugPrint('Something went Wrong');
-        //HandlingErrors().handleError(error);
       }
-    });
-    message = response['message'];
-    // if (response == null) return;
-    debugPrint("This is my response==================$response");
-    if (response['success'] == true) {
-      debugPrint(response.toString());
-      userInfo = moreModel.fromJson(response);
-      print('This is userInfo===================${userInfo}');
-      update();
+    } catch (e, stackTrace) {
+      debugPrint('[terms] Uncaught exception: $e');
+      debugPrint('[terms] Stack trace: $stackTrace');
 
-      //   Get.toNamed(RoutesName.RegistrationDetails);
-      //   userInfo = UserInfo.fromMap(response);
-      //  await  storage.write('user_token', userInfo.token);
-      //  await storage.write('userId', userInfo.user!.id);
-      //  await storage.write('name', userInfo.user!.name);
-      //  await storage.write('username', userInfo.user!.username);
-      //  await storage.write('email', userInfo.user!.email);
-      //  await storage.write('firebase_email', userInfo.user!.firebaseEmail);
-      //  await storage.write('mobile', userInfo.user!.mobile);
-      //  await storage.write('photo', userInfo.user!.photo);
-      //  await storage.write('status', userInfo.user!.status);
-      //   Navigator.of(Get.context!).pop();
+      if (Get.isDialogOpen == true) Get.back();
 
-      //  await createFirebaseUser(GetStorage().read('mobile') + '@gmail.com', GetStorage().read('mobile')).then((value){
-      //     SnakeBars.showSuccessSnake(description: userInfo.message);
-      //     Get.offNamed(Routes.BOTTOM_NAVIGATION);
-      //   }).catchError((error){
-      //     SnakeBars.showErrorSnake(description: error.toString());
-      //   });
-
-    } else {
-      Get.back();
       Get.snackbar(
         'Error'.tr,
-        '${message}',
+        'An unexpected error occurred'.tr,
         snackPosition: SnackPosition.TOP,
-        backgroundColor: R.colors.themeColor,
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
       );
-      // SnakeBars.showErrorSnake(description: response['message']);
-      // Navigator.of(Get.context!).pop();
+    } finally {
+      debugPrint('[terms] Terms function completed');
     }
-    return null;
-    // return null;
-  }
-}
+  }}

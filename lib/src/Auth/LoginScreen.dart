@@ -45,39 +45,76 @@ class _LoginScreenState extends State<LoginScreen> {
     EasyLoading.dismiss();
     final newVersion = NewVersion(androidId: 'com.sarf', iOSId: "com.sarf");
 
-    Timer(const Duration(milliseconds: 800), () {
-      checkNewVersion(newVersion);
-    });
+    // Timer(const Duration(milliseconds: 800), () {
+    //   checkNewVersion(newVersion);
+    // });
     english = GetStorage().read("lang") == "en" ? true : false;
     arabic = GetStorage().read("lang") == "ar" ? true : false;
     super.initState();
   }
 
-  void checkNewVersion(NewVersion newVersion) async {
-    final status = await newVersion.getVersionStatus();
-    if (status != null) {
+
+  Future<void> checkNewVersion(NewVersion newVersion) async {
+    try {
+      // Log initialization
+      debugPrint('[Version Check] Starting version check process...');
+
+      // Get version status
+      debugPrint('[Version Check] Fetching version status from store...');
+      final status = await newVersion.getVersionStatus();
+
+      if (status == null) {
+        debugPrint('[Version Check] No version status information available');
+        return;
+      }
+
+      // Log version information
+      debugPrint('[Version Check] Current version: ${status.localVersion}');
+      debugPrint('[Version Check] Store version: ${status.storeVersion}');
+      debugPrint('[Version Check] Can update: ${status.canUpdate}');
+
       if (status.canUpdate) {
+        debugPrint('[Version Check] Update available - showing dialog');
+
+        // Show custom dialog
         showDialog(
           context: context,
           builder: (BuildContext context) {
             return UpdateDialog(
               allowDismissal: true,
-              description: status.releaseNotes!,
+              description: status.releaseNotes ?? 'Bug fixes and performance improvements',
               version: status.storeVersion,
               appLink: status.appStoreLink,
             );
           },
         );
-        // newVersion.showUpdateDialog(
-        //   context: context,
-        //   versionStatus: status,
-        //   dialogText: 'New Version is available in the store (${status.storeVersion}), update now!',
-        //   dialogTitle: 'Update is Available!',
-        // );
-      } else {}
+
+        // Log dialog details
+        debugPrint('[Version Check] Custom UpdateDialog shown with version ${status.storeVersion}');
+
+        // Show default dialog as fallback
+        newVersion.showUpdateDialog(
+          context: context,
+          versionStatus: status,
+          dialogText: 'New Version is available in the store (${status.storeVersion}), update now!',
+          dialogTitle: 'Update is Available!',
+        );
+
+        debugPrint('[Version Check] Default update dialog shown');
+      } else {
+        debugPrint('[Version Check] App is up to date (${status.localVersion})');
+      }
+    } catch (e, stackTrace) {
+      // Error handling
+      debugPrint('[Version Check] Error during version check: $e');
+      debugPrint('[Version Check] Stack trace: $stackTrace');
+
+      // You might want to add error reporting here (e.g., Sentry, Firebase Crashlytics)
+      // await reportError(e, stackTrace);
+    } finally {
+      debugPrint('[Version Check] Version check process completed');
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -239,12 +276,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                                                             "lang") ==
                                                                         "en"
                                                                     ? singleData
-                                                                            .name
-                                                                            ?.en ??
+                                                                            .name.toString()??
                                                                         ''
                                                                     : singleData
-                                                                            .name
-                                                                            ?.ar ??
+                                                                            .name.toString()??
                                                                         ''),
                                                               ],
                                                             ),
@@ -413,12 +448,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                                                               "lang") ==
                                                                       "en"
                                                                   ? singleData
-                                                                          .name
-                                                                          ?.en ??
+                                                                          .name.toString()??
                                                                       ''
                                                                   : singleData
-                                                                          .name
-                                                                          ?.ar ??
+                                                                          .name.toString()??
                                                                       ''),
                                                             ],
                                                           ),
@@ -948,12 +981,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                                                             "lang") ==
                                                                         "en"
                                                                     ? singleData
-                                                                            .name
-                                                                            ?.en ??
+                                                                            .name.toString()??
                                                                         ''
                                                                     : singleData
-                                                                            .name
-                                                                            ?.ar ??
+                                                                            .name.toString()??
                                                                         ''),
                                                               ],
                                                             ),

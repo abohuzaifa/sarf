@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:sarf/controllers/auth/register_controller.dart';
@@ -22,82 +23,120 @@ class AboutController extends GetxController {
     super.onInit();
   }
 
-  Future about() async {
-    //check validation
-    // final isValid = loginFormKey.currentState!.validate();
-    // if (!isValid) {
-    //   return;
-    // }
-    // loginFormKey.currentState!.save();
-    // validation ends
-    // var a = forgotPasswordController.phone.text;
-    // final splitted = a.split('+');
+  Future<void> about() async {
+    try {
+      debugPrint('[about] Starting about API call...');
 
-    var request = {'language': GetStorage().read('lang'), 'id': 1};
-    print("This is my request====================${request}");
+      // Prepare request data
+      final request = {
+        'language': GetStorage().read('lang') ?? 'en', // Default to 'en' if null
+        'id': 1
+      };
+      debugPrint('[about] Request data: $request');
 
-    //DialogBoxes.openLoadingDialog();
+      // Show loading dialog
+      // DialogBoxes.openLoadingDialog();
+      debugPrint('[about] Showing loading dialog');
 
-    var response =
-        await DioClient().post(ApiLinks.about, request).catchError((error) {
-      if (error is BadRequestException) {
+      // Make API call
+      debugPrint('[about] Making POST request to ${ApiLinks.about}');
+      var response = await DioClient().post(ApiLinks.about, request).catchError((error) {
+        debugPrint('[about] API call failed: ${error.toString()}');
+
+        // Hide loading dialog
         Get.back();
+
+        String errorMessage = 'An unknown error occurred';
+        Color backgroundColor = R.colors.themeColor;
+
+        if (error is BadRequestException) {
+          debugPrint('[about] BadRequestException occurred');
+          try {
+            final apiError = json.decode(error.message!);
+            errorMessage = apiError["reason"]?.toString() ?? error.message ?? 'Bad request';
+            debugPrint('[about] Parsed API error: $apiError');
+          } catch (e) {
+            debugPrint('[about] Error parsing error message: $e');
+            errorMessage = error.message ?? 'Bad request';
+          }
+        } else if (error is FetchDataException) {
+          debugPrint('[about] FetchDataException occurred');
+          errorMessage = error.message ?? 'Failed to fetch data';
+        } else if (error is ApiNotRespondingException) {
+          debugPrint('[about] ApiNotRespondingException occurred');
+          errorMessage = 'Oops! It took longer to respond';
+        }
+
+        // Show error to user
+        debugPrint('[about] Showing error snackbar: $errorMessage');
         Get.snackbar(
           'Error'.tr,
-          '${message}',
+          errorMessage.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: backgroundColor,
+          colorText: Colors.white,
+        );
+
+        return null;
+      });
+
+      // Handle null response
+      if (response == null) {
+        debugPrint('[about] Received null response from API');
+        return;
+      }
+
+      debugPrint('[about] Full API response: $response');
+      message = response['message'] ?? 'No message';
+      debugPrint('[about] API message: $message');
+
+      if (response['success'] == true) {
+        debugPrint('[about] API call successful');
+
+        // Parse response
+        userInfo = moreModel.fromJson(response);
+        debugPrint('[about] Parsed user info: ${userInfo.toString()}');
+
+        // Update UI
+        update();
+        debugPrint('[about] UI updated');
+
+        // Show success message if needed
+        // Get.snackbar(
+        //   'Success'.tr,
+        //   message.tr,
+        //   snackPosition: SnackPosition.TOP,
+        //   backgroundColor: Colors.green,
+        //   colorText: Colors.white,
+        // );
+      } else {
+        debugPrint('[about] API returned success: false');
+        Get.back(); // Hide loading dialog
+
+        // Show error message
+        debugPrint('[about] Showing error snackbar for unsuccessful response');
+        Get.snackbar(
+          'Error'.tr,
+          message.tr,
           snackPosition: SnackPosition.TOP,
           backgroundColor: R.colors.themeColor,
+          colorText: Colors.white,
         );
-        var apiError = json.decode(error.message!);
-        print(apiError.toString());
-
-        // DialogBoxes.showErroDialog(description: apiError["reason"]);
-      } else {
-        Get.back();
-        debugPrint('Something went Wrong');
-        //HandlingErrors().handleError(error);
       }
-    });
-    message = response['message'];
-    // if (response == null) return;
-    debugPrint("This is my response==================$response");
-    if (response['success'] == true) {
-      debugPrint(response.toString());
-      userInfo = moreModel.fromJson(response);
-      print('This is COntent===================${userInfo}');
-      update();
-      //   Get.toNamed(RoutesName.RegistrationDetails);
-      //   userInfo = UserInfo.fromMap(response);
-      //  await  storage.write('user_token', userInfo.token);
-      //  await storage.write('userId', userInfo.user!.id);
-      //  await storage.write('name', userInfo.user!.name);
-      //  await storage.write('username', userInfo.user!.username);
-      //  await storage.write('email', userInfo.user!.email);
-      //  await storage.write('firebase_email', userInfo.user!.firebaseEmail);
-      //  await storage.write('mobile', userInfo.user!.mobile);
-      //  await storage.write('photo', userInfo.user!.photo);
-      //  await storage.write('status', userInfo.user!.status);
-      //   Navigator.of(Get.context!).pop();
+    } catch (e, stackTrace) {
+      debugPrint('[about] Unhandled exception: $e');
+      debugPrint('[about] Stack trace: $stackTrace');
 
-      //  await createFirebaseUser(GetStorage().read('mobile') + '@gmail.com', GetStorage().read('mobile')).then((value){
-      //     SnakeBars.showSuccessSnake(description: userInfo.message);
-      //     Get.offNamed(Routes.BOTTOM_NAVIGATION);
-      //   }).catchError((error){
-      //     SnakeBars.showErrorSnake(description: error.toString());
-      //   });
+      Get.back(); // Hide loading dialog
 
-    } else {
-      Get.back();
       Get.snackbar(
         'Error'.tr,
-        '${message}',
+        'An unexpected error occurred'.tr,
         snackPosition: SnackPosition.TOP,
-        backgroundColor: R.colors.themeColor,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
       );
-      // SnakeBars.showErrorSnake(description: response['message']);
-      // Navigator.of(Get.context!).pop();
+    } finally {
+      debugPrint('[about] About function completed');
     }
-    return null;
-    // return null;
-  }
-}
+  }}

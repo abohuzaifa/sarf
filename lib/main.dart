@@ -32,23 +32,108 @@ import 'locale/locale_strings.dart';
 import 'src/utils/routes.dart';
 import 'src/utils/routes_name.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  await GetStorage.init();
-  if (kIsWeb) {
-    await Firebase.initializeApp(
-        options: const FirebaseOptions(
-            apiKey: "AIzaSyAq3hlDIS1Uk2bUaNxAfQqg4JqiKm3m8yo",
-            appId: "1:560332227952:web:620ae66c34ede2cf13bbb5",
-            messagingSenderId: "560332227952",
-            projectId: "sarfapp-202c5"));
-  } else {
-    await Firebase.initializeApp(
-        // options: DefaultFirebaseOptions.currentPlatform,
-        );
-  }
+import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
+Future<void> main() async {
+  runZonedGuarded<Future<void>>(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+
+    // Global error handlers
+    _setupErrorHandlers();
+
+    try {
+      // Platform setup
+      await _initializePlatform();
+
+      // Firebase & Storage
+      await _initializeFirebase();
+      await _initializeStorage();
+
+      // Controllers (lazy-loaded by default in GetX)
+      _initializeControllers();
+
+      // Language defaults
+      await _setDefaultLanguage();
+
+      // Firebase Messaging
+      _setupFirebaseMessaging();
+
+      runApp(const MyApp());
+    } catch (e, stack) {
+      debugPrint('🔥 Critical startup error: $e');
+      debugPrint('Stack trace: $stack');
+      _showEmergencyUI(e); // Fallback UI for catastrophic failures
+    }
+  }, (error, stack) {
+    debugPrint('🚨 Zone error: $error');
+    debugPrint('Stack trace: $stack');
+  });
+}
+
+// --- Helper Functions --- //
+
+void _setupErrorHandlers() {
+  FlutterError.onError = (details) {
+    debugPrint('🎯 Flutter error: ${details.exception}');
+    if (kDebugMode) FlutterError.dumpErrorToConsole(details);
+  };
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('📱 Platform error: $error');
+    return true;
+  };
+}
+
+Future<void> _initializePlatform() async {
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  if (!kIsWeb) {
+    // Mobile-specific initializations
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  }
+}
+
+Future<void> _initializeFirebase() async {
+  try {
+    if (kIsWeb) {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: "AIzaSyAq3hlDIS1Uk2bUaNxAfQqg4JqiKm3m8yo",
+          appId: "1:560332227952:web:620ae66c34ede2cf13bbb5",
+          messagingSenderId: "560332227952",
+          projectId: "sarfapp-202c5",
+        ),
+      );
+    } else {
+      await Firebase.initializeApp();
+    }
+    debugPrint('✅ Firebase initialized');
+  } catch (e) {
+    debugPrint('❌ Firebase init failed: $e');
+    rethrow; // Critical for app functionality
+  }
+}
+
+Future<void> _initializeStorage() async {
+  try {
+    await GetStorage.init();
+    debugPrint('✅ Storage initialized');
+  } catch (e) {
+    debugPrint('❌ Storage init failed: $e');
+    // Non-critical, continue without storage
+  }
+}
+
+void _initializeControllers() {
+  // Using GetX's lazy loading by default (no need for Get.put at startup)
+  // Controllers will initialize when first used
   Get.put<LoginController>(LoginController());
   Get.put<RegisterController>(RegisterController());
   Get.put<OtpController>(OtpController());
@@ -63,15 +148,50 @@ void main() async {
   Get.put<PrivacyController>(PrivacyController());
   Get.put<AboutController>(AboutController());
   Get.put<SupportController>(SupportController());
-
-  if (await GetStorage().read('lang') == null) {
-    await GetStorage().write('lang', 'ar');
-  }
-
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  runApp(const MyApp());
+  debugPrint('🎮 Controllers registered');
 }
 
+Future<void> _setDefaultLanguage() async {
+  try {
+    if (await GetStorage().read('lang') == null) {
+      await GetStorage().write('lang', 'ar');
+      debugPrint('🌍 Default language set to Arabic');
+    }
+  } catch (e) {
+    debugPrint('❌ Language setup failed: $e');
+  }
+}
+
+void _setupFirebaseMessaging() {
+  try {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    debugPrint('📱 Firebase Messaging configured');
+  } catch (e) {
+    debugPrint('❌ FCM setup failed: $e');
+  }
+}
+
+void _showEmergencyUI(dynamic error) {
+  runApp(
+    MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('⚠️ App Failed to Start', style: TextStyle(fontSize: 24)),
+              Text(error.toString(), textAlign: TextAlign.center),
+              ElevatedButton(
+                onPressed: () => exit(1),
+                child: const Text('Exit App'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();

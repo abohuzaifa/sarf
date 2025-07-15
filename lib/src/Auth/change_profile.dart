@@ -42,7 +42,7 @@ class _ChangeProfileState extends State<ChangeProfile> {
   dynamic _pickImageError;
   final ImagePicker _picker = ImagePicker();
   bool isLoading = true;
-  List<Cities> cities = [];
+  List<City> cities = [];
 
   @override
   // ignore: must_call_super
@@ -62,7 +62,7 @@ class _ChangeProfileState extends State<ChangeProfile> {
   }
 
   Future getDataCollection() async {
-    await dataCollectionController.dataCollection();
+    // await dataCollectionController.dataCollection();
      for (var city in dataCollectionController.cities!) {
       if( city.countryId == GetStorage().read("countryId") ){
         cities.add(city);
@@ -796,20 +796,18 @@ class _ChangeProfileState extends State<ChangeProfile> {
                                               
                                                   cities[selectedCityIndex]
                                                   .name!
-                                                  .en
                                                   .toString() : 
                                                   cities[selectedCityIndex]
                                                   .name!
-                                                  .ar
                                                   .toString() ;
                                           var getCityId =
                                               
                                                   cities[selectedCityIndex]
                                                   .id;
                                           changeProfileController.finalSelectedCityId = getCityId.toString();
-                                          print(
-                                              "This is my selctedCity Id ============${getCityId} ${cities[selectedCityIndex]
-                                                  .name?.ar}");
+                                          // print(
+                                          //     "This is my selctedCity Id ============${getCityId} ${cities[selectedCityIndex]
+                                          //         .name?}");
 
                                           setState(() {
                                             changeProfileController
@@ -835,9 +833,9 @@ class _ChangeProfileState extends State<ChangeProfile> {
                                             child: Center(
                                               child: Text(
                                                GetStorage().read("lang") == "en"? 
-                                                    cities[index].name!.en
+                                                    cities[index].name!
                                                     .toString() : 
-                                                    cities[index].name!.ar
+                                                    cities[index].name!
                                                     .toString(),
                                                 style: TextStyle(
                                                     fontSize: 14,
