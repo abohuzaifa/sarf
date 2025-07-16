@@ -668,7 +668,7 @@ class _MoreScreenState extends State<MoreScreen> with RouteAware {
             : 80,
         right: GetStorage().read('lang') == 'en'
             ? kIsWeb == true
-                ? Get.width > 750
+                ? Get.width > 75
                     ? 30
                     : 10
                 : 30
@@ -905,28 +905,44 @@ class _MoreScreenState extends State<MoreScreen> with RouteAware {
 
   Widget buildImage() {
     return Container(
-        height: 80,
-        width: 80,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(
-            100,
-          ),
-          color: R.colors.white,
+      height: 80,
+      width: 80,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(100),
+        color: R.colors.white,
+      ),
+      child: profileController.profileModel?.user?.photo != null
+          ? ClipRRect(
+        borderRadius: BorderRadius.circular(100),
+        child: Image.network(
+          ApiLinks.assetBasePath + profileController.profileModel!.user!.photo!,
+          fit: BoxFit.cover,
+          loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                    : null,
+              ),
+            );
+          },
+          errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) {
+            return _buildFallbackIcon();
+          },
         ),
-        child: profileController.profileModel != null
-            ? profileController.profileModel!.user!.photo != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(100),
-                    child: Image.network(
-                      ApiLinks.assetBasePath +
-                          profileController.profileModel!.user!.photo!,
-                      fit: BoxFit.cover,
-                    ),
-                  )
-                : Container()
-            : SizedBox());
+      )
+          : _buildFallbackIcon(),
+    );
   }
 
+  Widget _buildFallbackIcon() {
+    return Icon(
+      Icons.person,
+      size: 40,
+      color: R.colors.themeColor, // Use your theme color
+    );
+  }
   Widget buildViewProfileLinkButton() {
     return InkWell(
       onTap: () {

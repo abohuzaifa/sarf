@@ -77,13 +77,13 @@ class _SimpleInvoiceState extends State<SimpleInvoice> with RouteAware {
     return input;
   }
 
-
   Future<void> pickImage(ImageSource source) async {
     try {
       List<XFile>? pickedFiles;
 
       if (source == ImageSource.camera) {
-        XFile? pickedFile = await ImagePicker().pickImage(source: source, imageQuality: 35);
+        XFile? pickedFile =
+            await ImagePicker().pickImage(source: source, imageQuality: 35);
         if (pickedFile != null) {
           pickedFiles = [pickedFile];
         }
@@ -102,7 +102,8 @@ class _SimpleInvoiceState extends State<SimpleInvoice> with RouteAware {
           final compressedFile = await compressImage(file);
           if (compressedFile != null) {
             print('Compressed file path: ${compressedFile.path}');
-            print('Compressed file size: ${await compressedFile.length()} bytes');
+            print(
+                'Compressed file size: ${await compressedFile.length()} bytes');
             ctr.uploadImages.add(compressedFile);
           }
         } else {
@@ -146,20 +147,39 @@ class _SimpleInvoiceState extends State<SimpleInvoice> with RouteAware {
   // }
 
   Future pickImageQr() async {
+    print('[pickImageQr] Starting image picker for QR code');
     try {
+      print('[pickImageQr] Attempting to pick image from gallery');
       var pickedFile =
           await ImagePicker().pickImage(source: ImageSource.gallery);
-      // var pickedFile = await picker.pickImage(source: source, imageQuality: 35);
-      // ignore: unnecessary_null_comparison
-      if (pickedFile == null) return;
-      ctr.mobile1.text = (await Scan.parse(pickedFile.path))!;
-      ctr.checkMobile = true;
-      Get.back();
-      // for (var item in pickedFile) {
-      //   ctr.uploadImages.add(File(item.path));
-      // }
+
+      print('[pickImageQr] Picked file: ${pickedFile?.path ?? 'null'}');
+      if (pickedFile == null) {
+        print('[pickImageQr] No file was selected, returning');
+        return;
+      }
+
+      print('[pickImageQr] Attempting to parse QR code from image');
+      String? parsedResult = await Scan.parse(pickedFile.path);
+      print('[pickImageQr] Parsed result: ${parsedResult ?? 'null'}');
+
+      if (parsedResult != null) {
+        ctr.mobile1.text = parsedResult;
+        ctr.checkMobile = true;
+        print('[pickImageQr] Successfully updated mobile number and validated');
+        Get.back();
+      } else {
+        print('[pickImageQr] Failed to parse QR code - no valid data found');
+      }
     } on PlatformException catch (e) {
-      // debugPrint('Failed to pick image: $e');
+      print('[pickImageQr] PlatformException occurred: $e');
+      // You might want to show this error to the user
+      Get.snackbar('Error', 'Failed to pick image: ${e.message}');
+    } catch (e) {
+      print('[pickImageQr] Unexpected error occurred: $e');
+      Get.snackbar('Error', 'An unexpected error occurred');
+    } finally {
+      print('[pickImageQr] Image picker process completed');
     }
   }
 
@@ -759,7 +779,7 @@ class _SimpleInvoiceState extends State<SimpleInvoice> with RouteAware {
                                                             height: 60,
                                                             margin:
                                                                 const EdgeInsets
-                                                                    .only(
+                                                                        .only(
                                                                     right: 10,
                                                                     top: 5),
                                                             decoration:
@@ -851,31 +871,36 @@ class _SimpleInvoiceState extends State<SimpleInvoice> with RouteAware {
                                                   if (name ==
                                                       'User not found') {
                                                     Get.snackbar(
-                                                        'Error'.tr,
-                                                        "Enter a valid number"
-                                                            .tr);
+                                                      'Error'.tr,
+                                                      "Enter a valid number".tr,
+                                                      backgroundColor:
+                                                          Colors.red,
+                                                      colorText: Colors.black,
+                                                    );
                                                     return;
                                                   }
                                                   if (ctr
                                                       .mobile1.text.isEmpty) {
                                                     Get.snackbar(
-                                                        'Error'.tr,
-                                                        "mobile is required"
-                                                            .tr);
+                                                      'Error'.tr,
+                                                      "mobile is required".tr,
+                                                      backgroundColor:
+                                                          Colors.red,
+                                                      colorText: Colors.black,
+                                                    );
                                                     return;
                                                   }
                                                   if (ctr
                                                       .amount2.text.isEmpty) {
                                                     Get.snackbar(
-                                                        'Error'.tr,
-                                                        "amount is required"
-                                                            .tr);
+                                                      'Error'.tr,
+                                                      "amount is required".tr,
+                                                      backgroundColor:
+                                                          Colors.red,
+                                                      colorText: Colors.black,
+                                                    );
                                                     return;
                                                   }
-                                                  // if (ctr.note3.text.isEmpty) {
-                                                  //   Get.snackbar('Error'.tr, "note is required".tr);
-                                                  //   return;
-                                                  // }
                                                   FocusScope.of(context)
                                                       .unfocus();
 
@@ -883,7 +908,6 @@ class _SimpleInvoiceState extends State<SimpleInvoice> with RouteAware {
                                                   String b =
                                                       replaceArabicNumber(
                                                           ctr.amount2.text);
-                                                  // print(b);
 
                                                   ctr
                                                       .postNewInvoice(

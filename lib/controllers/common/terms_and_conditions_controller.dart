@@ -28,114 +28,70 @@ class TermsAndConditionsController extends GetxController {
     try {
       debugPrint('[terms] Starting terms and conditions API call...');
 
-      // Prepare request data with default language fallback
       final request = {
         'language': GetStorage().read('lang') ?? 'en',
-        'id': 3  // Terms and conditions identifier
+        'id': 3
       };
       debugPrint('[terms] Request data: $request');
 
-      // Show loading dialog (uncomment if needed)
-      // DialogBoxes.openLoadingDialog();
-      debugPrint('[terms] Loading dialog shown');
-
-      // Make API call
       debugPrint('[terms] Making POST request to ${ApiLinks.about}');
       final response = await DioClient().post(ApiLinks.about, request).catchError((error) {
         debugPrint('[terms] API request failed: ${error.toString()}');
-
-        // Hide loading dialog if open
         if (Get.isDialogOpen == true) Get.back();
 
-        String errorMessage = 'Failed to load terms and conditions';
+        String errorMessage = 'Failed to load terms and conditions'.tr;
         Color backgroundColor = R.colors.themeColor;
 
         if (error is BadRequestException) {
-          debugPrint('[terms] BadRequestException: ${error.message}');
           try {
             final apiError = json.decode(error.message!);
-            errorMessage = apiError["reason"]?.toString() ?? error.message ?? errorMessage;
+            errorMessage = apiError["reason"]?.toString() ?? errorMessage;
           } catch (e) {
-            debugPrint('[terms] Error parsing error message: $e');
+            errorMessage = error.message ?? errorMessage;
           }
-        } else if (error is FetchDataException) {
-          debugPrint('[terms] FetchDataException: ${error.message}');
-          errorMessage = 'Connection error. Please try again.';
-        } else if (error is ApiNotRespondingException) {
-          debugPrint('[terms] ApiNotRespondingException');
-          errorMessage = 'Server timeout. Please try again later.';
         }
 
-        // Show error to user
-        debugPrint('[terms] Displaying error to user: $errorMessage');
+        // Show already translated string
         Get.snackbar(
           'Error'.tr,
-          errorMessage.tr,
+          errorMessage, // Don't call .tr here as it's already translated or a raw API message
           snackPosition: SnackPosition.TOP,
           backgroundColor: backgroundColor,
           colorText: Colors.white,
-          duration: const Duration(seconds: 3),
         );
-
         return null;
       });
 
-      // Handle null response
-      if (response == null) {
-        debugPrint('[terms] Received null response from API');
-        return;
-      }
+      if (response == null) return;
 
       debugPrint('[terms] API response received: ${response.toString()}');
-      message = response['message'] ?? 'No message from server';
-      debugPrint('[terms] API message: $message');
+      final apiMessage = response['message']?.toString() ?? 'No message from server';
+      message = apiMessage; // Store raw message
 
       if (response['success'] == true) {
-        debugPrint('[terms] API call successful');
-
-        // Parse and store response
         userInfo = moreModel.fromJson(response);
-        debugPrint('[terms] Parsed terms content: ${userInfo.toString()}');
-
-        // Update UI
         update();
-        debugPrint('[terms] UI updated with new terms content');
-
-        // Optional success notification
-        // Get.snackbar(
-        //   'Success'.tr,
-        //   'Terms loaded successfully'.tr,
-        //   snackPosition: SnackPosition.TOP,
-        //   backgroundColor: Colors.green,
-        //   duration: const Duration(seconds: 1),
-        // );
       } else {
-        debugPrint('[terms] API returned success: false');
         if (Get.isDialogOpen == true) Get.back();
 
-        // Show API error message
-        debugPrint('[terms] Displaying API error to user');
+        // Show API message without .tr since it's from server
         Get.snackbar(
           'Error'.tr,
-          message.tr,
+          apiMessage, // Raw API message
           snackPosition: SnackPosition.TOP,
           backgroundColor: R.colors.themeColor,
           colorText: Colors.white,
-          duration: const Duration(seconds: 3),
         );
       }
     } catch (e, stackTrace) {
-      debugPrint('[terms] Uncaught exception: $e');
-      debugPrint('[terms] Stack trace: $stackTrace');
-
+      debugPrint('[terms] Uncaught exception: $e\n$stackTrace');
       if (Get.isDialogOpen == true) Get.back();
 
       Get.snackbar(
         'Error'.tr,
-        'An unexpected error occurred'.tr,
+        'An unexpected error occurred'.tr, // Pre-translated string
         snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
       );
     } finally {
       debugPrint('[terms] Terms function completed');

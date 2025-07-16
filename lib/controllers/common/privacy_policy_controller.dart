@@ -27,119 +27,75 @@ class PrivacyController extends GetxController {
     try {
       debugPrint('[privacy] Starting privacy API call...');
 
-      // Prepare request data
-      final language = GetStorage().read('lang') ?? 'en'; // Default to English
+      // Prepare request data with default language fallback
       final request = {
-        'language': language,
+        'language': GetStorage().read('lang') ?? 'en',
         'id': 2  // Privacy policy identifier
       };
       debugPrint('[privacy] Request data: $request');
 
-      // Show loading dialog
-      // DialogBoxes.openLoadingDialog();
-      debugPrint('[privacy] Showing loading dialog');
-
-      // Make API call
       debugPrint('[privacy] Making POST request to ${ApiLinks.about}');
       final response = await DioClient().post(ApiLinks.about, request).catchError((error) {
-        debugPrint('[privacy] API call failed: ${error.toString()}');
-
-        // Hide loading dialog
+        debugPrint('[privacy] API request failed: ${error.toString()}');
         if (Get.isDialogOpen == true) Get.back();
 
-        String errorMessage = 'An unknown error occurred';
+        String errorMessage = 'Failed to load privacy policy'.tr; // Pre-translated
         Color backgroundColor = R.colors.themeColor;
 
         if (error is BadRequestException) {
-          debugPrint('[privacy] BadRequestException occurred');
           try {
             final apiError = json.decode(error.message!);
-            errorMessage = apiError["reason"]?.toString() ?? error.message ?? 'Bad request';
-            debugPrint('[privacy] Parsed API error: $apiError');
+            errorMessage = apiError["reason"]?.toString() ?? errorMessage;
           } catch (e) {
-            debugPrint('[privacy] Error parsing error message: $e');
-            errorMessage = error.message ?? 'Bad request';
+            errorMessage = error.message ?? errorMessage;
           }
         } else if (error is FetchDataException) {
-          debugPrint('[privacy] FetchDataException occurred');
-          errorMessage = 'Failed to connect to server'.tr;
+          errorMessage = 'Connection error. Please try again.'.tr;
         } else if (error is ApiNotRespondingException) {
-          debugPrint('[privacy] ApiNotRespondingException occurred');
-          errorMessage = 'Server took too long to respond'.tr;
+          errorMessage = 'Server timeout. Please try again later.'.tr;
         }
 
-        // Show error to user
-        debugPrint('[privacy] Showing error snackbar: $errorMessage');
+        // Show error (don't call .tr on errorMessage as it's already translated)
         Get.snackbar(
           'Error'.tr,
-          errorMessage.tr,
+          errorMessage,
           snackPosition: SnackPosition.TOP,
           backgroundColor: backgroundColor,
           colorText: Colors.white,
-          duration: const Duration(seconds: 3),
         );
-
         return null;
       });
 
-      // Handle null response
-      if (response == null) {
-        debugPrint('[privacy] Received null response from API');
-        return;
-      }
+      if (response == null) return;
 
-      debugPrint('[privacy] Full API response received');
-      message = response['message'] ?? 'No message from server';
-      debugPrint('[privacy] API message: $message');
+      debugPrint('[privacy] API response received: ${response.toString()}');
+      final apiMessage = response['message']?.toString() ?? 'No message from server';
+      message = apiMessage; // Store raw message
 
       if (response['success'] == true) {
-        debugPrint('[privacy] API call successful');
-
-        // Parse response
         userInfo = moreModel.fromJson(response);
-        debugPrint('[privacy] Parsed privacy content: ${userInfo.toString()}');
-
-        // Update UI
         update();
-        debugPrint('[privacy] UI updated with new privacy content');
-
-        // Optional: Show success message
-        // Get.snackbar(
-        //   'Success'.tr,
-        //   'Privacy policy loaded successfully'.tr,
-        //   snackPosition: SnackPosition.TOP,
-        //   backgroundColor: Colors.green,
-        //   colorText: Colors.white,
-        //   duration: const Duration(seconds: 2),
-        // );
       } else {
-        debugPrint('[privacy] API returned success: false');
         if (Get.isDialogOpen == true) Get.back();
 
-        // Show error message
-        debugPrint('[privacy] Showing error snackbar for unsuccessful response');
+        // Show API message without .tr since it's from server
         Get.snackbar(
           'Error'.tr,
-          message.tr,
+          apiMessage,
           snackPosition: SnackPosition.TOP,
           backgroundColor: R.colors.themeColor,
           colorText: Colors.white,
-          duration: const Duration(seconds: 3),
         );
       }
     } catch (e, stackTrace) {
-      debugPrint('[privacy] Unhandled exception: $e');
-      debugPrint('[privacy] Stack trace: $stackTrace');
-
+      debugPrint('[privacy] Uncaught exception: $e\n$stackTrace');
       if (Get.isDialogOpen == true) Get.back();
 
       Get.snackbar(
         'Error'.tr,
-        'Failed to load privacy policy'.tr,
+        'An unexpected error occurred'.tr, // Pre-translated string
         snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 3),
       );
     } finally {
       debugPrint('[privacy] Privacy function completed');

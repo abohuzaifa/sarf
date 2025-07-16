@@ -147,57 +147,80 @@ class MembersController extends GetxController {
 
   Future<ListMembersNewList?> getMembersNewList(
       String id, String city, String query) async {
-    //  print("${ApiLinks.cityList}${GetStorage().read('lang')}");
-    // openLoader();
-    var request = {};
-    if (query == '') {
-      request = {
-        "language": GetStorage().read('lang'),
-        "expense_type_id": id,
-        "city_id": city
-      };
-    } else {
-      request = {
-        "language": GetStorage().read('lang'),
-        "expense_type_id": id,
-        "city_id": city,
-        "query_string": query,
-      };
-    }
-    //  var request = {
-    //   "language": GetStorage().read('lang'),
-    //   "expense_type_id": id,
-    //   "city_id": city
-    //  };
-    //  debugPrint(request.toString());
-    var response = await DioClient()
-        .post(ApiLinks.memberNewList, request)
-        .catchError((error) {
-      if (error is BadRequestException) {
-        // debugPrint(error.toString());
+    try {
+      debugPrint('[Members] Starting getMembersNewList with params:');
+      debugPrint('[Members] - id: $id');
+      debugPrint('[Members] - city: $city');
+      debugPrint('[Members] - query: $query');
+
+      // Prepare request based on query presence
+      var request = {};
+      if (query.isEmpty) {
+        request = {
+          "language": GetStorage().read('lang'),
+          "expense_type_id": id,
+          "city_id": city
+        };
+        debugPrint('[Members] Request without query: $request');
       } else {
-        // debugPrint(error.toString());
+        request = {
+          "language": GetStorage().read('lang'),
+          "expense_type_id": id,
+          "city_id": city,
+          "query_string": query,
+        };
+        debugPrint('[Members] Request with query: $request');
+      }
+
+      debugPrint('[Members] Making POST request to ${ApiLinks.memberNewList}');
+      var response = await DioClient()
+          .post(ApiLinks.memberNewList, request)
+          .catchError((error) {
+        debugPrint('[Members] API call failed with error: $error');
 
         if (error is BadRequestException) {
-          // debugPrint(error.toString());
+          debugPrint('[Members] BadRequestException: ${error.message}');
+          try {
+            var apiError = json.decode(error.message!);
+            debugPrint('[Members] Parsed API error: $apiError');
+          } catch (e) {
+            debugPrint('[Members] Error parsing error message: $e');
+          }
         } else if (error is FetchDataException) {
-          // debugPrint(error.toString());
+          debugPrint('[Members] FetchDataException: ${error.message}');
         } else if (error is ApiNotRespondingException) {
-          // debugPrint(error.message.toString());
+          debugPrint('[Members] ApiNotRespondingException: ${error.message}');
+        } else {
+          debugPrint('[Members] Unknown error type: ${error.runtimeType}');
         }
+
+        return null;
+      });
+
+      if (response == null) {
+        debugPrint('[Members] Received null response from API');
+        return null;
       }
-    });
-    // debugPrint(response.toString());
-    if (response['success'] == true) {
-      //  print("aaaaaaaaaaaaaaaaaassssssssssssssssssssssss");
-      // debugPrint(response.toString());
-      var listNew = ListMembersNewList.fromJson(response);
-      //  print("aaaaaaaaaaaaaaaaaassssssssssssssssssssssss${listNew.data.toString()}");
-      return listNew;
-    } else {
-      // debugPrint('here');
+
+      debugPrint('[Members] Full API response: $response');
+
+      if (response['success'] == true) {
+        debugPrint('[Members] API call successful');
+        var listNew = ListMembersNewList.fromJson(response);
+        debugPrint('[Members] Parsed ${listNew.data?.length ?? 0} members');
+        return listNew;
+      } else {
+        debugPrint('[Members] API returned success: false');
+        debugPrint('[Members] API message: ${response['message']}');
+        return null;
+      }
+    } catch (e, stackTrace) {
+      debugPrint('[Members] Unhandled exception in getMembersNewList: $e');
+      debugPrint('[Members] Stack trace: $stackTrace');
+      return null;
+    } finally {
+      debugPrint('[Members] getMembersNewList execution completed');
     }
-    return null;
   }
 
   Future getMemberDetails(String id) async {

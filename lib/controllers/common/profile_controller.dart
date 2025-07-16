@@ -44,43 +44,125 @@ class ProfileController extends GetxController {
   void onInit() {
     // GetStorage().write('lang', 'en');
     getAlertCount();
-    // getProfile();
+    getProfile();
     getAccounts();
     super.onInit();
   }
 
   Future getProfile() async {
-    EasyLoading.instance
-      ..loadingStyle =
-          EasyLoadingStyle.custom //This was missing in earlier code
-      ..backgroundColor = Colors.white
-      ..indicatorColor = R.colors.blue
-      ..maskColor = R.colors.blue
-      ..dismissOnTap = false
-      ..textColor = R.colors.blue
-      ..userInteractions = false;
-    EasyLoading.show(status: 'Sarf');
-    //check validation
-    // final isValid = loginFormKey.currentState!.validate();
-    // if (!isValid) {
-    //   return;
-    // }
-    // loginFormKey.currentState!.save();
-    // validation ends
-    // var a = forgotPasswordController.phone.text;
-    // final splitted = a.split('+');
+    // Log: Loading started
+    print('[ProfileController] Starting profile loading...');
 
-    var request = {
-      'language': GetStorage().read('lang'),
-    };
-    // print("This is my request====================$request");
+    try {
+      // Configure loading indicator
+      EasyLoading.instance
+        ..loadingStyle = EasyLoadingStyle.custom
+        ..backgroundColor = Colors.white
+        ..indicatorColor = R.colors.blue
+        ..maskColor = R.colors.blue
+        ..dismissOnTap = false
+        ..textColor = R.colors.blue
+        ..userInteractions = false;
 
-    //DialogBoxes.openLoadingDialog();
+      EasyLoading.show(status: 'Loading...');
+      print('[ProfileController] Loading indicator shown');
 
-    var response = await DioClient()
-        .post(ApiLinks.profile, request)
-        .catchError((error) async {
-      if (error is BadRequestException) {
+      // Prepare request
+      var request = {
+        'language': GetStorage().read('lang'),
+      };
+      print('[ProfileController] Request prepared: $request');
+
+      // Make API call
+      print('[ProfileController] Making API call to ${ApiLinks.profile}');
+      var response = await DioClient().post(ApiLinks.profile, request)
+          .catchError((error) async {
+        print('[ProfileController] API Error: $error');
+
+        if (error is BadRequestException) {
+          EasyLoading.dismiss();
+          print('[ProfileController] BadRequestException: ${error.message}');
+
+          Get.back();
+          Get.snackbar(
+            'Error'.tr,
+            '$message',
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: R.colors.themeColor,
+          );
+
+          var apiError = json.decode(error.message!);
+          print('[ProfileController] API Error Details: $apiError');
+        } else {
+          print('[ProfileController] Other Error: $error');
+          EasyLoading.dismiss();
+          Get.back();
+
+          // Clear storage
+          print('[ProfileController] Clearing storage data...');
+          await GetStorage().remove('user_token');
+          await GetStorage().remove('groupId');
+          await GetStorage().remove('userId');
+          await GetStorage().remove('name');
+          await GetStorage().remove('username');
+          await GetStorage().remove('email');
+          await GetStorage().remove('firebase_email');
+          await GetStorage().remove('mobile');
+          await GetStorage().remove('photo');
+          await GetStorage().remove('status');
+
+          print('[ProfileController] Navigating to login screen');
+          Get.offAllNamed(RoutesName.LogIn);
+        }
+      });
+
+      if (response == null) {
+        print('[ProfileController] Response is null');
+        return;
+      }
+
+      print('[ProfileController] API Response received: ${response.toString()}');
+      message = response['message'];
+      print('[ProfileController] Message from response: $message');
+
+      if (response['success'] == true) {
+        print('[ProfileController] Successful response, parsing data...');
+
+        // Parse profile model
+        profileModel = ProfileModel.fromJson(response);
+        print('[ProfileController] Profile model parsed successfully');
+
+        try {
+          // Update form fields
+          nameController.text = profileModel!.user!.name ?? '';
+          userNameController.text = profileModel!.user!.username ?? '';
+          emailController.text = profileModel!.user!.email ?? '';
+          mobileController.text = profileModel!.user!.mobile ?? '';
+          instaController.text = profileModel!.user!.userDetail?.instaLink ?? '';
+          twitterController.text = profileModel!.user!.userDetail?.twitterLink ?? '';
+          contactController.text = profileModel!.user!.userDetail?.contactNo ?? '';
+          whatsappController.text = profileModel!.user!.userDetail?.whatsapp ?? '';
+          websiteController.text = profileModel!.user!.userDetail?.website ?? '';
+          location.value = profileModel!.user!.userDetail?.location ?? '';
+
+          print('[ProfileController] Form fields updated successfully');
+
+          // Save user data to storage
+          if (profileModel!.user!.name != null) {
+            await GetStorage().write('name', profileModel!.user!.name);
+            print('[ProfileController] User name saved to storage: ${profileModel!.user!.name}');
+          }
+
+          EasyLoading.dismiss();
+          update();
+          print('[ProfileController] Profile loaded and UI updated successfully');
+        } catch (e) {
+          print('[ProfileController] Error updating form fields: $e');
+          EasyLoading.dismiss();
+          throw e;
+        }
+      } else {
+        print('[ProfileController] API returned success=false');
         EasyLoading.dismiss();
         Get.back();
         Get.snackbar(
@@ -89,124 +171,17 @@ class ProfileController extends GetxController {
           snackPosition: SnackPosition.TOP,
           backgroundColor: R.colors.themeColor,
         );
-        var apiError = json.decode(error.message!);
-        // print(apiError.toString());
-
-        // DialogBoxes.showErroDialog(description: apiError["reason"]);
-      } else {
-        EasyLoading.dismiss();
-        Get.back();
-        // debugPrint('Something went Wrong===============${error.toString()}');
-        await GetStorage().remove('user_token');
-        await GetStorage().remove('groupId');
-        await GetStorage().remove('userId');
-        await GetStorage().remove(
-          'name',
-        );
-        await GetStorage().remove(
-          'username',
-        );
-        await GetStorage().remove(
-          'email',
-        );
-        await GetStorage().remove(
-          'firebase_email',
-        );
-        await GetStorage().remove(
-          'mobile',
-        );
-        await GetStorage().remove(
-          'photo',
-        );
-        await GetStorage().remove(
-          'status',
-        );
-        Get.offAllNamed(RoutesName.LogIn);
-        //HandlingErrors().handleError(error);
       }
-    });
-    if (response == null) return;
-    message = response['message'];
-    // debugPrint("This is my response==================$response");
-    if (response['success'] == true) {
-      // debugPrint(response.toString());
-      // // debugPrint();
-      // debugPrint(response.toString());
-      profileModel = ProfileModel.fromJson(response);
-      // print('This is ===================$profileModel');
-      // print('This is ===================${profileModel!.user!.userDetail!.cityId!.id.toString()}');
-      nameController.text = profileModel!.user!.name == null
-          ? ''
-          : nameController.text = profileModel!.user!.name!;
-      userNameController.text = profileModel!.user!.username == null
-          ? ''
-          : userNameController.text = profileModel!.user!.username!;
-      emailController.text = profileModel!.user!.email == null
-          ? ''
-          : emailController.text = profileModel!.user!.email!;
-      mobileController.text = profileModel!.user!.mobile == null
-          ? ''
-          : mobileController.text = profileModel!.user!.mobile!;
-      instaController.text = profileModel!.user!.userDetail?.instaLink == null
-          ? ''
-          : profileModel!.user!.userDetail!.instaLink!;
-      twitterController.text =
-          profileModel!.user!.userDetail?.twitterLink == null
-              ? ''
-              : profileModel!.user!.userDetail?.twitterLink ?? '';
-      contactController.text = profileModel!.user!.userDetail?.contactNo == null
-          ? ''
-          : profileModel!.user!.userDetail?.contactNo ?? "";
-      whatsappController.text = profileModel!.user!.userDetail?.whatsapp == null
-          ? ''
-          : profileModel!.user!.userDetail?.whatsapp! ?? '';
-      websiteController.text = profileModel!.user!.userDetail?.website == null
-          ? ''
-          : profileModel!.user!.userDetail?.website ?? '';
-      location.value = profileModel!.user!.userDetail?.location == null
-          ? ''
-          : profileModel!.user!.userDetail?.location ?? '';
-      if (profileModel!.user!.name != null) {
-        await GetStorage().write('name', profileModel!.user!.name);
-        // debugPrint("${GetStorage().read('name')}");
-      }
+    } catch (e) {
+      print('[ProfileController] Unexpected error in getProfile(): $e');
       EasyLoading.dismiss();
-      update();
-      //   Get.toNamed(RoutesName.RegistrationDetails);
-      //   userInfo = UserInfo.fromMap(response);
-      //  await  storage.write('user_token', userInfo.token);
-      //  await storage.write('userId', userInfo.user!.id);
-      //  await storage.write('name', userInfo.user!.name);
-      //  await storage.write('username', userInfo.user!.username);
-      //  await storage.write('email', userInfo.user!.email);
-      //  await storage.write('firebase_email', userInfo.user!.firebaseEmail);
-      //  await storage.write('mobile', userInfo.user!.mobile);
-      //  await storage.write('photo', userInfo.user!.photo);
-      //  await storage.write('status', userInfo.user!.status);
-      //   Navigator.of(Get.context!).pop();
-
-      //  await createFirebaseUser(GetStorage().read('mobile') + '@gmail.com', GetStorage().read('mobile')).then((value){
-      //     SnakeBars.showSuccessSnake(description: userInfo.message);
-      //     Get.offNamed(Routes.BOTTOM_NAVIGATION);
-      //   }).catchError((error){
-      //     SnakeBars.showErrorSnake(description: error.toString());
-      //   });
-    } else {
-      EasyLoading.dismiss();
-      Get.back();
-      Get.snackbar(
-        'Error'.tr,
-        '$message',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: R.colors.themeColor,
-      );
-      // SnakeBars.showErrorSnake(description: response['message']);
-      // Navigator.of(Get.context!).pop();
+      rethrow;
+    } finally {
+      print('[ProfileController] Profile loading process completed');
     }
-    return null;
-    // return null;
-  }
 
+    return null;
+  }
   Future getAccounts() async {
     accounts.value = UserAccounts();
     //check validation

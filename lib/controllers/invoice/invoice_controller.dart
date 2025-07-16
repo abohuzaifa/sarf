@@ -38,73 +38,130 @@ class InvoiceController extends getpackage.GetxController {
   TextEditingController note3 = TextEditingController();
   TextEditingController note33 = TextEditingController();
   bool loading = false;
+
   Future<void> postNewInvoice(String mobile, String amount, String note) async {
-    openLoader();
-    FormData formData = FormData();
+    try {
+      debugPrint('[Invoice] Starting postNewInvoice');
+      debugPrint(
+          '[Invoice] Parameters - Mobile: $mobile, Amount: $amount, Note: $note');
 
-    for (var i = 0; i < uploadImages.length; i++) {
-      var file = uploadImages[i];
-      int fileSizeInBytes = await file.length();
-      double fileSizeInMB = fileSizeInBytes / (1024 * 1024);
-      print('Original file ${i + 1} size: $fileSizeInMB MB');
+      openLoader();
+      debugPrint('[Invoice] Loader opened');
 
-      if (fileSizeInMB > 2.0) { // Compress files larger than 2 MB
-        File? compressedFile = await compressImage(file);
-        if (compressedFile != null) {
-          int compressedFileSizeInBytes = await compressedFile.length();
-          double compressedFileSizeInMB = compressedFileSizeInBytes / (1024 * 1024);
-          print('Compressed file ${i + 1} size: $compressedFileSizeInMB MB');
-          file = compressedFile;
+      FormData formData = FormData();
+      debugPrint('[Invoice] FormData created');
+
+      // Process each image
+      debugPrint('[Invoice] Processing ${uploadImages.length} attached images');
+      for (var i = 0; i < uploadImages.length; i++) {
+        var file = uploadImages[i];
+        int fileSizeInBytes = await file.length();
+        double fileSizeInMB = fileSizeInBytes / (1024 * 1024);
+        debugPrint(
+            '[Invoice] Original file ${i + 1} size: ${fileSizeInMB.toStringAsFixed(2)} MB');
+
+        if (fileSizeInMB > 2.0) {
+          debugPrint('[Invoice] Compressing file ${i + 1} (over 2MB)');
+          File? compressedFile = await compressImage(file);
+          if (compressedFile != null) {
+            int compressedFileSizeInBytes = await compressedFile.length();
+            double compressedFileSizeInMB =
+                compressedFileSizeInBytes / (1024 * 1024);
+            debugPrint(
+                '[Invoice] Compressed file ${i + 1} size: ${compressedFileSizeInMB.toStringAsFixed(2)} MB (${((fileSizeInMB - compressedFileSizeInMB) / fileSizeInMB * 100).toStringAsFixed(1)}% reduction)');
+            file = compressedFile;
+          } else {
+            debugPrint(
+                '[Invoice] Compression failed for file ${i + 1}, using original');
+          }
         }
+
+        String fileName = file.path.split('/').last;
+        formData.files.add(MapEntry("file_attach[]",
+            await MultipartFile.fromFile(file.path, filename: fileName)));
+        debugPrint('[Invoice] Added file ${i + 1} to form data: $fileName');
       }
 
-      String fileName = file.path.split('/').last;
-      formData.files.add(MapEntry("file_attach[]",
-          await MultipartFile.fromFile(file.path, filename: fileName)));
-    }
+      // Add form fields
+      formData.fields
+          .add(MapEntry('language', GetStorage().read('lang').toString()));
+      formData.fields.add(MapEntry('mobile', mobile));
+      formData.fields.add(MapEntry('amount', amount));
+      formData.fields.add(MapEntry('note', note));
+      formData.fields.add(const MapEntry('paid_status', "0"));
+      debugPrint('[Invoice] Form fields added to request');
 
-    formData.fields
-        .add(MapEntry('language', GetStorage().read('lang').toString()));
-    formData.fields.add(MapEntry('mobile', mobile));
-    formData.fields.add(MapEntry('amount', amount));
-    formData.fields.add(MapEntry('note', note));
-    formData.fields.add(const MapEntry('paid_status', "0"));
+      debugPrint('[Invoice] Making POST request to ${ApiLinks.simpleInvoice}');
+      var response = await DioClient()
+          .post(ApiLinks.simpleInvoice, formData, true)
+          .catchError((error) {
+        debugPrint('[Invoice] API request failed');
+        checkMobile = false;
+        getpackage.Get.back();
+        debugPrint('[Invoice] Closed any open dialogs');
 
-    var response = await DioClient()
-        .post(ApiLinks.simpleInvoice, formData, true)
-        .catchError((error) {
-      checkMobile = false;
-      getpackage.Get.back();
-      if (error is BadRequestException) {
-        var apiError = json.decode(error.message!);
-        print('Server error: ${apiError.toString()}');
-        getpackage.Get.snackbar('Error'.tr, apiError["reason"].toString());
+        if (error is BadRequestException) {
+          debugPrint('[Invoice] BadRequestException occurred');
+          try {
+            var apiError = json.decode(error.message!);
+            debugPrint(
+                '[Invoice] Server error details: ${apiError.toString()}');
+            getpackage.Get.snackbar('Error'.tr, apiError["reason"].toString());
+          } catch (e) {
+            debugPrint('[Invoice] Error parsing API error: $e');
+            getpackage.Get.snackbar('Error'.tr, "Invalid server response".tr);
+          }
+        } else {
+          debugPrint('[Invoice] Network error occurred');
+          debugPrint('[Invoice] Status code: ${error.response?.statusCode}');
+          debugPrint('[Invoice] Error data: ${error.response?.data}');
+          debugPrint('[Invoice] Error message: ${error.message}');
+          getpackage.Get.snackbar('Error'.tr, "Something went wrong".tr);
+        }
+      });
+
+      debugPrint('[Invoice] API response received');
+      if (response == null) {
+        debugPrint('[Invoice] Null response received');
+        return;
+      }
+
+      debugPrint('[Invoice] Response status: ${response['success']}');
+      debugPrint('[Invoice] Response message: ${response['message']}');
+
+      if (response['success']) {
+        debugPrint('[Invoice] Invoice created successfully');
+        checkMobile = false;
+        getpackage.Get.back();
+        uploadImages.clear();
+        mobile1.clear();
+        amount2.clear();
+        note3.clear();
+        debugPrint('[Invoice] Cleared all form data');
+        getpackage.Get.back();
+        getpackage.Get.snackbar('Success'.tr, response['message'].toString());
       } else {
-        print('Error status code: ${error.response?.statusCode}');
-        print('Error data: ${error.response?.data}');
-        print('Error message: ${error.message}');
-        getpackage.Get.snackbar('Error'.tr, "Something went wrong".tr);
+        debugPrint('[Invoice] Invoice creation failed');
+        if (response.containsKey('validation_errors')) {
+          debugPrint(
+              '[Invoice] Validation errors: ${response['validation_errors']}');
+          getpackage.Get.snackbar(response['message'].toString(),
+              response['validation_errors'].toString());
+        } else {
+          getpackage.Get.snackbar('Error'.tr, response['message'].toString());
+        }
+        Navigator.of(getpackage.Get.context!).pop();
       }
-    });
-
-    print("This is status code ${response}");
-    if (response == null) return;
-
-    if (response['success']) {
-      checkMobile = false;
-      getpackage.Get.back();
-      uploadImages.clear();
-      mobile1.clear();
-      amount2.clear();
-      note3.clear();
-      getpackage.Get.back();
-      getpackage.Get.snackbar('Success'.tr, response['message'].toString());
-    } else {
-      (response.containsKey('validation_errors'))
-          ? getpackage.Get.snackbar(response['message'].toString(),
-          response['validation_errors'].toString())
-          : getpackage.Get.snackbar('Error'.tr, response['message'].toString());
-      Navigator.of(getpackage.Get.context!).pop();
+    } catch (e, stackTrace) {
+      debugPrint('[Invoice] Unexpected error in postNewInvoice: $e');
+      debugPrint('[Invoice] Stack trace: $stackTrace');
+      getpackage.Get.snackbar('Error'.tr, "An unexpected error occurred".tr);
+    } finally {
+      if (EasyLoading.isShow) {
+        await EasyLoading.dismiss();
+        debugPrint('[Invoice] Loader dismissed');
+      }
+      debugPrint('[Invoice] postNewInvoice completed');
     }
   }
 

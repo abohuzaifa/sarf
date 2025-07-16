@@ -204,18 +204,72 @@ class CityId {
 
   CityId({this.id, this.name});
 
-  CityId.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-    name = json['name'] != null ? new Name.fromJson(json['name']) : null;
+  factory CityId.fromJson(dynamic json) {
+    try {
+      print('[CityId] Parsing city data: $json');
+
+      if (json == null) {
+        print('[CityId] Null input, returning empty CityId');
+        return CityId();
+      }
+
+      if (json is Map<String, dynamic>) {
+        print('[CityId] Parsing as Map');
+        return CityId(
+          id: _parseId(json['id']),
+          name: _parseName(json['name']),
+        );
+      } else if (json is int || json is String) {
+        print('[CityId] Parsing as ID only');
+        return CityId(
+          id: json is int ? json : int.tryParse(json),
+        );
+      } else {
+        print('[CityId] Unknown format, returning empty');
+        return CityId();
+      }
+    } catch (e) {
+      print('[CityId] Error parsing city: $e');
+      return CityId();
+    }
+  }
+
+  static int? _parseId(dynamic id) {
+    if (id == null) return null;
+    if (id is int) return id;
+    return int.tryParse(id.toString());
+  }
+
+  static Name? _parseName(dynamic nameData) {
+    try {
+      if (nameData == null) {
+        print('[CityId] Name is null');
+        return null;
+      }
+
+      if (nameData is Map<String, dynamic>) {
+        print('[CityId] Parsing name as Map');
+        return Name.fromJson(nameData);
+      }
+
+      if (nameData is String) {
+        print('[CityId] Parsing name as String');
+        return Name(en: nameData, ar: nameData);
+      }
+
+      print('[CityId] Unknown name format: $nameData');
+      return null;
+    } catch (e) {
+      print('[CityId] Error parsing name: $e');
+      return null;
+    }
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['id'] = this.id;
-    if (this.name != null) {
-      data['name'] = this.name!.toJson();
-    }
-    return data;
+    return {
+      'id': id,
+      'name': name?.toJson(),
+    };
   }
 }
 

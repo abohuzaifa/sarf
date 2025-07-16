@@ -77,27 +77,62 @@ class _MembersListScreenState extends State<MembersListScreen> {
 }
 @override
 void initState() {
-    loadMembers();
     super.initState();
-  }
+    loadMembers();
+
+}
 @override
 void dispose(){
   searchOnStoppedTyping?.cancel();
   super.dispose();
-}  
-loadMembers()async{
-   ctrProfile.getProfile().then((value){
-                // print(ctrProfile.profileModel?.user?.name ?? 'asssssssssssssssssssssssss');
-              });
-  cityList = ctr.getMembersNewList(ctr.selectExpanseTypeID, ctr.selectCityID, '');
-  cityList?.then((value){
-              
-              setState(() {
-                membersLenght = '(${value?.data?.length ?? 0})';
-              });
-            });
 }
 
+  Future<void> loadMembers() async {
+    debugPrint('[Members] Starting loadMembers()');
+
+    try {
+      // Load profile first
+      debugPrint('[Members] Initiating profile load...');
+      await ctrProfile.getProfile().then((value) {
+        debugPrint('[Members] Profile load completed');
+        debugPrint('[Members] Profile name: ${ctrProfile.profileModel?.user?.name ?? 'Not available'}');
+      }).catchError((error) {
+        debugPrint('[Members] Error loading profile: $error');
+      });
+
+      // Load member list
+      debugPrint('[Members] Initiating members list load...');
+      debugPrint('[Members] Parameters:');
+      debugPrint('[Members] - Expense Type ID: ${ctr.selectExpanseTypeID}');
+      debugPrint('[Members] - City ID: ${ctr.selectCityID}');
+
+      cityList = ctr.getMembersNewList(ctr.selectExpanseTypeID, ctr.selectCityID, '');
+
+      cityList?.then((value) {
+        debugPrint('[Members] Members list load completed');
+        debugPrint('[Members] Found ${value?.data?.length ?? 0} members');
+
+        setState(() {
+          membersLenght = '(${value?.data?.length ?? 0})';
+          debugPrint('[Members] Updated UI with members count: $membersLenght');
+        });
+      }).catchError((error) {
+        debugPrint('[Members] Error loading members list: $error');
+        setState(() {
+          membersLenght = '(0)';
+          debugPrint('[Members] Reset members count due to error');
+        });
+      });
+    } catch (e, stackTrace) {
+      debugPrint('[Members] Unhandled error in loadMembers(): $e');
+      debugPrint('[Members] Stack trace: $stackTrace');
+      setState(() {
+        membersLenght = '(0)';
+      });
+    } finally {
+      debugPrint('[Members] loadMembers() completed');
+    }
+  }
 
   void launchWhatsApp(String phone) async {
   final Uri whatsApp = Uri.parse("https://wa.me/$phone/?text=Hi");
@@ -167,7 +202,7 @@ launchPhone({required Uri u}) async {
                                         hintStyle: TextStyle(color: R.colors.grey),
                                         focusedBorder: InputBorder.none,
                                         border: InputBorder.none,
-                    
+
                                       ),
                                     ),
                                   ),),
@@ -201,7 +236,7 @@ launchPhone({required Uri u}) async {
           ),
         ),
             const SizedBox(height: 10,),
-            Expanded(child: 
+            Expanded(child:
             Transform(
               transform: Matrix4.translationValues(0, -20, 0),
               child: Padding(
@@ -218,11 +253,11 @@ launchPhone({required Uri u}) async {
                       future: cityList,
                       builder: (contaxt,snapshot){
                         if(snapshot.connectionState == ConnectionState.waiting){
-                          // return SizedBox(); 
+                          // return SizedBox();
                           Center(child:SizedBox(height: 100,width: 100,child: CircularProgressIndicator(color: R.colors.blue),));
                         }
                         if(snapshot.hasData){
-                          
+
                           List<Data> data = snapshot.data!.data!;
                           if(data.isNotEmpty){
                            return ListView.builder(
@@ -312,7 +347,7 @@ launchPhone({required Uri u}) async {
                                       if(singleData.userDetail?.locationLng != null && singleData.userDetail?.locationLat != null ){
                                         navigateTo(lat, lng);
                                       }
-                                      
+
                                     },
                                     child: Row(
                                       children: [
@@ -349,7 +384,7 @@ launchPhone({required Uri u}) async {
                                       if(singleData.userDetail?.locationLng != null && singleData.userDetail?.locationLat != null ){
                                         navigateTo(lat, lng);
                                       }
-                                      
+
                                     },
                                     child: Row(
                                       children: [
@@ -427,7 +462,7 @@ launchPhone({required Uri u}) async {
                                             ],),
                                           ),
                                         )
-                                        
+
                                     ],)
                                   ],
                                 )),
@@ -445,10 +480,6 @@ launchPhone({required Uri u}) async {
                 ),
               ),
             ),
-            
-            
-            
-             
             )
             // Expanded(child: GridView.builder(
             //           padding: const EdgeInsets.symmetric(horizontal: 12),

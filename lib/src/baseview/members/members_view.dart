@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:sarf/controllers/members/members_controller.dart';
@@ -81,17 +82,63 @@ class _MembersScreenState extends State<MembersScreen> {
     super.dispose();
   }
 
-  loadMembers() {
-    membersList = ctr.getMembersList('');
-    membersList?.then((value) {
+  Future<void> loadMembers() async {
+    debugPrint('[Members] Starting loadMembers()');
+
+    try {
+      // Show loading indicator
+      EasyLoading.instance
+        ..indicatorType = EasyLoadingIndicatorType.circle
+        ..userInteractions = false;
+      EasyLoading.show(status: 'Loading members...');
+      debugPrint('[Members] Showing loading indicator');
+
+      debugPrint('[Members] Fetching members list...');
+      membersList = ctr.getMembersList('');
+
+      await membersList?.then((value) {
+        debugPrint('[Members] Successfully fetched members list');
+        debugPrint('[Members] Received ${value?.data?.length ?? 0} members');
+
+        if (mounted) {
+          setState(() {
+            membersLenght = '(${value?.data?.length ?? 0})';
+            debugPrint('[Members] Updated members count: $membersLenght');
+          });
+        } else {
+          debugPrint('[Members] Widget not mounted - skipping UI update');
+        }
+      }).catchError((error, stackTrace) {
+        debugPrint('[Members] Error fetching members list: $error');
+        debugPrint('[Members] Stack trace: $stackTrace');
+
+        if (mounted) {
+          setState(() {
+            membersLenght = '(0)';
+            debugPrint('[Members] Reset members count due to error');
+          });
+        }
+      });
+
+      debugPrint('[Members] Members list request completed');
+    } catch (e, stackTrace) {
+      debugPrint('[Members] Unexpected error in loadMembers(): $e');
+      debugPrint('[Members] Stack trace: $stackTrace');
+
       if (mounted) {
         setState(() {
-          membersLenght = '(${value?.data?.length ?? 0})';
+          membersLenght = '(0)';
         });
       }
-    });
+    } finally {
+      // Dismiss loader in all cases
+      if (EasyLoading.isShow) {
+        await EasyLoading.dismiss();
+        debugPrint('[Members] Loading indicator dismissed');
+      }
+      debugPrint('[Members] loadMembers() completed');
+    }
   }
-
   @override
   Widget build(BuildContext context) {
     return WillPopScope(

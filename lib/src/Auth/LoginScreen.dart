@@ -356,7 +356,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
             )
-          : Column(
+          :
+      Column(
               children: [
                 buildLoginTextAndLanguageOptions(),
                 Form(

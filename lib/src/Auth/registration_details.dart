@@ -1418,119 +1418,129 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
       builder: (BuildContext context) {
         return StatefulBuilder(builder: (context, setState) {
           return Material(
-              type: MaterialType.transparency,
-              child: InkWell(
-                splashColor: Colors.transparent,
-                highlightColor: Colors.transparent,
-                onTap: () => Navigator.pop(context),
-                child: GestureDetector(
-                  onTap: () {},
-                  child: Container(
-                    height: MediaQuery.of(context).size.height / 2,
-                    width: MediaQuery.of(context).size.width,
-                    margin: const EdgeInsets.symmetric(horizontal: 15.0),
-                    child: Center(
-                      child: Container(
-                        height: MediaQuery.of(context).size.height / 2,
-                        width: MediaQuery.of(context).size.width,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(15.0),
-                              topRight: Radius.circular(12.0),
-                              bottomLeft: Radius.circular(8.0),
-                              bottomRight: Radius.circular(8.0)),
-                        ),
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 20),
-                            Text(
-                              'Select Type'.tr,
-                              style: TextStyle(
-                                  fontSize: 18,
-                                  fontFamily: 'bold',
-                                  color: R.colors.buttonColor),
-                            ),
-                            const SizedBox(height: 20),
-                            Expanded(
-                              child: Container(
-                                margin:
-                                    const EdgeInsets.only(top: 10, bottom: 10),
-                                color: R.colors.lightGrey,
-                                width: MediaQuery.of(context).size.width,
-                                child: ListView.builder(
-                                  itemCount:
-                                      dataCollectionController.types!.length,
-                                  itemBuilder:
-                                      (BuildContext context, int index) {
-                                    return InkWell(
-                                      onTap: () {
-                                        selectedTypeIndex = index;
-                                        registrationController
-                                                .finalSelectedType.value =
-                                            GetStorage().read("lang") == "ar"
-                                                ? dataCollectionController
-                                                    .types![index]
-                                                    .toString()
-                                                : dataCollectionController
-                                                    .types![index]
-                                                    .toString();
-                                        registrationController.expense_typeId =
-                                            dataCollectionController
-                                                .types![index].id
-                                                .toString();
-                                        Navigator.pop(context);
-                                      },
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Container(
-                                          height: 30,
-                                          decoration: BoxDecoration(
-                                              color: selectedTypeIndex == index
-                                                  ? R.colors.buttonColor
-                                                  : Colors.transparent,
-                                              borderRadius:
-                                                  BorderRadius.circular(100),
-                                              border: Border.all(
-                                                  color: Colors.grey)),
-                                          margin: const EdgeInsets.only(top: 2),
-                                          child: Center(
-                                            child: Text(
-                                              GetStorage().read("lang") == "ar"
-                                                  ? dataCollectionController
-                                                      .types![index]
-                                                      .expenseNameAr
-                                                      .toString()
-                                                  : dataCollectionController
-                                                      .types![index].expenseName
-                                                      .toString(),
-                                              style: TextStyle(
-                                                  fontSize: 14,
-                                                  color:
-                                                      selectedTypeIndex == index
-                                                          ? Colors.white
-                                                          : R.colors.black),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
+            type: MaterialType.transparency,
+            child: InkWell(
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              onTap: () => Navigator.pop(context),
+              child: GestureDetector(
+                onTap: () {},
+                child: Container(
+                  height: MediaQuery.of(context).size.height / 2,
+                  width: MediaQuery.of(context).size.width,
+                  margin: const EdgeInsets.symmetric(horizontal: 15.0),
+                  child: Center(
+                    child: Container(
+                      height: MediaQuery.of(context).size.height / 2,
+                      width: MediaQuery.of(context).size.width,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(15.0),
+                            topRight: Radius.circular(12.0),
+                            bottomLeft: Radius.circular(8.0),
+                            bottomRight: Radius.circular(8.0)),
+                      ),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          Text(
+                            'Select Type'.tr,
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontFamily: 'bold',
+                                color: R.colors.buttonColor),
+                          ),
+                          const SizedBox(height: 20),
+                          // Display the currently selected type (if any)
+                          if (registrationController.finalSelectedType.value.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Text(
+                                'Selected: ${registrationController.finalSelectedType.value}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: R.colors.buttonColor,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
+                          const SizedBox(height: 10),
+                          Expanded(
+                            child: Container(
+                              margin: const EdgeInsets.only(top: 10, bottom: 10),
+                              color: R.colors.lightGrey,
+                              width: MediaQuery.of(context).size.width,
+                              child: ListView.builder(
+                                itemCount: dataCollectionController.types!.length,
+                                itemBuilder: (BuildContext context, int index) {
+                                  return InkWell(
+                                    onTap: () {
+                                      setState(() {
+                                        selectedTypeIndex = index;
+                                      });
+                                      registrationController.finalSelectedType.value =
+                                      GetStorage().read("lang") == "ar"
+                                          ? dataCollectionController
+                                          .types![index].expenseNameAr
+                                          .toString()
+                                          : dataCollectionController
+                                          .types![index].expenseName
+                                          .toString();
+                                      registrationController.expense_typeId =
+                                          dataCollectionController
+                                              .types![index].id
+                                              .toString();
+                                      Navigator.pop(context);
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Container(
+                                        height: 30,
+                                        decoration: BoxDecoration(
+                                            color: selectedTypeIndex == index
+                                                ? R.colors.buttonColor
+                                                : Colors.transparent,
+                                            borderRadius:
+                                            BorderRadius.circular(100),
+                                            border: Border.all(
+                                                color: Colors.grey)),
+                                        margin: const EdgeInsets.only(top: 2),
+                                        child: Center(
+                                          child: Text(
+                                            GetStorage().read("lang") == "ar"
+                                                ? dataCollectionController
+                                                .types![index].expenseNameAr
+                                                .toString()
+                                                : dataCollectionController
+                                                .types![index].expenseName
+                                                .toString(),
+                                            style: TextStyle(
+                                                fontSize: 14,
+                                                color: selectedTypeIndex == index
+                                                    ? Colors.white
+                                                    : R.colors.black),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
-              ));
+              ),
+            ),
+          );
         });
       },
     );
   }
-
   Widget buildSelectCityDropDown() {
     return Container(
       margin: const EdgeInsets.only(top: 20),
