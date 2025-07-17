@@ -736,7 +736,7 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
 
   Widget buildSubmitButton() {
     return Container(
-      margin: const EdgeInsets.only(top: 30),
+      margin: const EdgeInsets.only(top: 30,bottom: 50),
       height: 50,
       decoration: BoxDecoration(
         color: const Color(0xFFFB7B57),
