@@ -43,6 +43,13 @@ class SupportController extends getpackage.GetxController {
     try {
       debugPrint('[getSupportTypes] Starting to fetch support types...');
 
+      // Check if token exists
+      final token = GetStorage().read('token');
+      if (token == null || token.isEmpty) {
+        debugPrint('[getSupportTypes] No token available, aborting API call');
+        return;
+      }
+
       // Get language from storage
       final lang = GetStorage().read('lang') ?? 'en';
       debugPrint('[getSupportTypes] Using language: $lang');

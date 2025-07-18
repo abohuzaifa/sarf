@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
@@ -599,7 +600,7 @@ class _ChangeProfileState extends State<ChangeProfile> {
     return Container(
       margin: EdgeInsets.only(
         top: 30,
-        bottom: 20,
+        bottom: 50,
       ),
       child: customButton(
           margin: 20,
@@ -734,129 +735,121 @@ class _ChangeProfileState extends State<ChangeProfile> {
       builder: (BuildContext context) {
         return StatefulBuilder(builder: (context, setState) {
           return Material(
-              type: MaterialType.transparency,
-              child: InkWell(
-                splashColor: Colors.transparent,
-                highlightColor: Colors.transparent,
-                onTap: () {
-                  Navigator.pop(context);
-                },
-                child: GestureDetector(
-                  onTap: () {},
-                  child: Container(
-                    height: MediaQuery.of(context).size.height / 2,
-                    width: MediaQuery.of(context).size.width,
-                    margin: const EdgeInsets.symmetric(horizontal: 15.0),
-                    child: Center(
-                      child: Container(
-                        height: MediaQuery.of(context).size.height / 2,
-                        width: MediaQuery.of(context).size.width,
-                        //  margin: const EdgeInsets.symmetric(horizontal: 15.0),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(15.0),
-                              topRight: Radius.circular(12.0),
-                              bottomLeft: Radius.circular(8.0),
-                              bottomRight: Radius.circular(8.0)),
+            type: MaterialType.transparency,
+            child: InkWell(
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              onTap: () => Navigator.pop(context),
+              child: GestureDetector(
+                onTap: () {},
+                child: Container(
+                  height: MediaQuery.of(context).size.height / 2,
+                  width: MediaQuery.of(context).size.width,
+                  margin: const EdgeInsets.symmetric(horizontal: 15.0),
+                  child: Center(
+                    child: Container(
+                      height: MediaQuery.of(context).size.height / 2,
+                      width: MediaQuery.of(context).size.width,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(15.0),
+                          topRight: Radius.circular(12.0),
+                          bottomLeft: Radius.circular(8.0),
+                          bottomRight: Radius.circular(8.0),
                         ),
-                        child: Column(
-                          children: [
-                            SizedBox(
-                              height: 20,
+                      ),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          Text(
+                            'Select City'.tr,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontFamily: 'bold',
+                              color: R.colors.buttonColor,
                             ),
-                            Text(
-                              'Select City'.tr,
-                              style: TextStyle(
-                                  fontSize: 18,
-                                  fontFamily: 'bold',
-                                  color: R.colors.buttonColor),
-                            ),
-                            SizedBox(
-                              height: 20,
-                            ),
-                            Expanded(
-                              child: Container(
-                                margin: EdgeInsets.only(top: 10, bottom: 10),
-                                //  height: MediaQuery.of(context).size.height / 4,
-                                color: R.colors.lightGrey,
-                                width: MediaQuery.of(context).size.width,
-                                child: ListView.builder(
-                                    scrollDirection: Axis.vertical,
-                                    itemCount:
-                                        cities.length,
-                                    itemBuilder: (BuildContext, index) {
-                                      return InkWell(
-                                        onTap: () {
-                                          selectedCityIndex = index;
-                                          print(selectedCityIndex);
-                                          changeProfileController
-                                                  .finalSelectedCity.value =
-                                              GetStorage().read("lang") == "en" ?    
-                                              
-                                                  cities[selectedCityIndex]
-                                                  .name!
-                                                  .toString() : 
-                                                  cities[selectedCityIndex]
-                                                  .name!
-                                                  .toString() ;
-                                          var getCityId =
-                                              
-                                                  cities[selectedCityIndex]
-                                                  .id;
-                                          changeProfileController.finalSelectedCityId = getCityId.toString();
-                                          // print(
-                                          //     "This is my selctedCity Id ============${getCityId} ${cities[selectedCityIndex]
-                                          //         .name?}");
+                          ),
+                          const SizedBox(height: 20),
+                          Expanded(
+                            child: Container(
+                              margin: const EdgeInsets.only(top: 10, bottom: 10),
+                              color: R.colors.lightGrey,
+                              width: MediaQuery.of(context).size.width,
+                              child: ListView.builder(
+                                scrollDirection: Axis.vertical,
+                                itemCount: cities.length,
+                                itemBuilder: (BuildContext context, int index) {
+                                  final city = cities[index];
+                                  final lang = GetStorage().read("lang") ?? "en";
 
-                                          setState(() {
-                                            changeProfileController
-                                                .finalSelectedCity;
-                                          });
+                                  // Parse the city name JSON
+                                  String cityName = '';
+                                  try {
+                                    if (city.name != null) {
+                                      final nameJson = json.decode(city.name!);
+                                      if (nameJson is Map) {
+                                        cityName = nameJson[lang] ?? nameJson['en'] ?? city.name!;
+                                      } else {
+                                        cityName = city.name!;
+                                      }
+                                    }
+                                  } catch (e) {
+                                    debugPrint('Error parsing city name: $e');
+                                    cityName = city.name ?? '';
+                                  }
 
-                                          Get.back();
-                                        },
-                                        child: Padding(
-                                          padding: EdgeInsets.all(8.0),
-                                          child: Container(
-                                            height: 30,
-                                            decoration: BoxDecoration(
-                                                color:
-                                                    selectedCityIndex == index
-                                                        ? R.colors.buttonColor
-                                                        : Colors.transparent,
-                                                borderRadius:
-                                                    BorderRadius.circular(100),
-                                                border: Border.all(
-                                                    color: Colors.grey)),
-                                            margin: EdgeInsets.only(top: 2),
-                                            child: Center(
-                                              child: Text(
-                                               GetStorage().read("lang") == "en"? 
-                                                    cities[index].name!
-                                                    .toString() : 
-                                                    cities[index].name!
-                                                    .toString(),
-                                                style: TextStyle(
-                                                    fontSize: 14,
-                                                    color: R.colors.black),
-                                              ),
+                                  return InkWell(
+                                    onTap: () {
+                                      selectedCityIndex = index;
+                                      debugPrint(selectedCityIndex.toString());
+
+                                      // Set the selected city name (in correct language)
+                                      changeProfileController.finalSelectedCity.value = cityName;
+                                      changeProfileController.finalSelectedCityId = city.id.toString();
+
+                                      setState(() {});
+                                      Get.back();
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Container(
+                                        height: 30,
+                                        decoration: BoxDecoration(
+                                          color: selectedCityIndex == index
+                                              ? R.colors.buttonColor
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(100),
+                                          border: Border.all(color: Colors.grey),
+                                        ),
+                                        margin: const EdgeInsets.only(top: 2),
+                                        child: Center(
+                                          child: Text(
+                                            cityName,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: selectedCityIndex == index
+                                                  ? Colors.white
+                                                  : R.colors.black,
                                             ),
                                           ),
                                         ),
-                                      );
-                                    }),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
-              ));
+              ),
+            ),
+          );
         });
       },
     );
-  }
-}
+  }}

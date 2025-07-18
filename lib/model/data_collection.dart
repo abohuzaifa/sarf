@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:flutter/cupertino.dart';
+
 class DataCollection {
   bool? success;
   String? message;
@@ -15,9 +19,9 @@ class DataCollection {
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
-    data['success'] = this.success;
-    data['message'] = this.message;
-    data['redirect'] = this.redirect;
+    data['success'] = success;
+    data['message'] = message;
+    data['redirect'] = redirect;
     if (this.data != null) {
       data['data'] = this.data!.toJson();
     }
@@ -77,7 +81,6 @@ class Data {
     return data;
   }
 }
-
 class Country {
   int? id;
   String? name;
@@ -88,6 +91,7 @@ class Country {
   String? mobileNumberPlaceholder;
   int? orderBy;
   int? status;
+  Map<String, String>? nameTranslations;
 
   Country({
     this.id,
@@ -99,24 +103,50 @@ class Country {
     this.mobileNumberPlaceholder,
     this.orderBy,
     this.status,
+    this.nameTranslations,
   });
 
-  Country.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-    name = json['name'];
-    code = json['code'];
-    abbr = json['abbr'];
-    flag = json['flag'];
-    mobileNumberLength = json['mobile_number_length'];
-    mobileNumberPlaceholder = json['mobile_number_placeholder'];
-    orderBy = json['order_by'];
-    status = json['status'];
+  factory Country.fromJson(Map<String, dynamic> json) {
+    Map<String, String>? translations;
+    dynamic nameValue = json['name'];
+
+    try {
+      if (nameValue != null) {
+        if (nameValue is String) {
+          // If it's a string, try to parse it as JSON
+          translations = Map<String, String>.from(jsonDecode(nameValue));
+        } else if (nameValue is Map) {
+          // If it's already a Map, use it directly
+          translations = Map<String, String>.from(nameValue);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error parsing country name: $e');
+      translations = {'en': nameValue?.toString() ?? ''};
+    }
+
+    return Country(
+      id: json['id'],
+      name: translations?['en'] ?? nameValue?.toString(),
+      code: json['code'],
+      abbr: json['abbr'],
+      flag: json['flag'],
+      mobileNumberLength: json['mobile_number_length'],
+      mobileNumberPlaceholder: json['mobile_number_placeholder'],
+      orderBy: json['order_by'],
+      status: json['status'],
+      nameTranslations: translations,
+    );
+  }
+
+  String getName(String lang) {
+    return nameTranslations?[lang] ?? nameTranslations?['en'] ?? name ?? '';
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['id'] = id;
-    data['name'] = name;
+    data['name'] = nameTranslations != null ? jsonEncode(nameTranslations) : name;
     data['code'] = code;
     data['abbr'] = abbr;
     data['flag'] = flag;
@@ -130,64 +160,118 @@ class Country {
 
 class City {
   int? id;
+  int? userId;
   int? countryId;
   String? name;
   int? status;
+  Map<String, String>? nameTranslations;
 
   City({
     this.id,
+    this.userId,
     this.countryId,
     this.name,
     this.status,
+    this.nameTranslations,
   });
 
-  City.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-    countryId = json['country_id'];
-    name = json['name'];
-    status = json['status'];
+  factory City.fromJson(Map<String, dynamic> json) {
+    dynamic nameValue = json['name'];
+    Map<String, String>? translations;
+    String? displayName;
+
+    try {
+      if (nameValue != null) {
+        if (nameValue is String) {
+          // Try to parse as JSON first
+          try {
+            translations = Map<String, String>.from(jsonDecode(nameValue));
+            displayName = translations['en'] ?? nameValue;
+          } catch (e) {
+            // If parsing fails, treat as plain string
+            displayName = nameValue;
+            translations = {'en': nameValue};
+          }
+        } else if (nameValue is Map) {
+          translations = Map<String, String>.from(nameValue);
+          displayName = translations['en'] ?? nameValue.toString();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error parsing city name: $e');
+      displayName = nameValue?.toString();
+      translations = {'en': displayName ?? ''};
+    }
+
+    return City(
+      id: json['id'],
+      userId: json['user_id'],
+      countryId: json['country_id'],
+      name: displayName,
+      status: json['status'],
+      nameTranslations: translations,
+    );
+  }
+
+  String getName(String lang) {
+    // If we have translations, use them
+    if (nameTranslations != null) {
+      return nameTranslations?[lang] ?? nameTranslations?['en'] ?? name ?? '';
+    }
+    // Otherwise just return the name
+    return name ?? '';
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['id'] = id;
+    data['user_id'] = userId;
     data['country_id'] = countryId;
-    data['name'] = name;
+    data['name'] = nameTranslations != null ? jsonEncode(nameTranslations) : name;
     data['status'] = status;
     return data;
   }
 }
-
-
 class ExpenseType {
   int? id;
   String? expenseName;
   String? expenseNameAr;
   int? orderBy;
+  int? isUserType;
   int? status;
 
-  ExpenseType(
-      {this.id,
-        this.expenseName,
-        this.expenseNameAr,
-        this.orderBy,
-        this.status});
+  ExpenseType({
+    this.id,
+    this.expenseName,
+    this.expenseNameAr,
+    this.orderBy,
+    this.isUserType,
+    this.status,
+  });
 
-  ExpenseType.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-    expenseName = json['expense_name'];
-    expenseNameAr = json['expense_name_ar'];
-    orderBy = json['order_by'];
-    status = json['status'];
+  factory ExpenseType.fromJson(Map<String, dynamic> json) {
+    return ExpenseType(
+      id: json['id'],
+      expenseName: json['expense_name'],
+      expenseNameAr: json['expense_name_ar'],
+      orderBy: json['order_by'],
+      isUserType: json['is_user_type'],
+      status: json['status'],
+    );
+  }
+
+  String getName(String lang) {
+    return lang == 'ar' ? expenseNameAr ?? expenseName ?? '' : expenseName ?? '';
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['id'] = this.id;
-    data['expense_name'] = this.expenseName;
-    data['expense_name_ar'] = this.expenseNameAr;
-    data['order_by'] = this.orderBy;
-    data['status'] = this.status;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['id'] = id;
+    data['expense_name'] = expenseName;
+    data['expense_name_ar'] = expenseNameAr;
+    data['order_by'] = orderBy;
+    data['is_user_type'] = isUserType;
+    data['status'] = status;
     return data;
   }
 }
@@ -221,19 +305,21 @@ class Language {
     this.updatedAt,
   });
 
-  Language.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-    abbr = json['abbr'];
-    name = json['name'];
-    flag = json['flag'];
-    dateFormat = json['date_format'];
-    datetimeFormat = json['datetime_format'];
-    direction = json['direction'];
-    status = json['status'];
-    isDefault = json['is_default'];
-    deletedAt = json['deleted_at'];
-    createdAt = json['created_at'];
-    updatedAt = json['updated_at'];
+  factory Language.fromJson(Map<String, dynamic> json) {
+    return Language(
+      id: json['id'],
+      abbr: json['abbr'],
+      name: json['name'],
+      flag: json['flag'],
+      dateFormat: json['date_format'],
+      datetimeFormat: json['datetime_format'],
+      direction: json['direction'],
+      status: json['status'],
+      isDefault: json['is_default'],
+      deletedAt: json['deleted_at'],
+      createdAt: json['created_at'],
+      updatedAt: json['updated_at'],
+    );
   }
 
   Map<String, dynamic> toJson() {

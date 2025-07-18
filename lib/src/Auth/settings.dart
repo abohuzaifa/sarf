@@ -27,10 +27,11 @@ class _SettingsState extends State<Settings> {
 
   @override
   void initState() {
-    english = GetStorage().read("lang") == "en" ? true : false ;
-    arabic = GetStorage().read("lang") == "ar" ? true: false;
+    english = GetStorage().read("lang") == "en" ? true : false;
+    arabic = GetStorage().read("lang") == "ar" ? true : false;
     super.initState();
-  }    
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -71,7 +72,8 @@ class _SettingsState extends State<Settings> {
           Navigator.pop(context);
         },
         child: Padding(
-          padding:  EdgeInsets.symmetric(horizontal: kIsWeb == true ? Get.width * 0.11 : 0),
+          padding: EdgeInsets.symmetric(
+              horizontal: kIsWeb == true ? Get.width * 0.11 : 0),
           child: Row(
             children: [
               Container(
@@ -105,7 +107,8 @@ class _SettingsState extends State<Settings> {
       right: 20,
       left: 20,
       child: Padding(
-        padding:  EdgeInsets.symmetric(horizontal: kIsWeb == true ? Get.width * 0.11 : 0),
+        padding: EdgeInsets.symmetric(
+            horizontal: kIsWeb == true ? Get.width * 0.11 : 0),
         child: Container(
           width: MediaQuery.of(context).size.width,
           decoration: const BoxDecoration(
@@ -119,14 +122,12 @@ class _SettingsState extends State<Settings> {
           child: Column(
             children: [
               buildLanguageTextAndLanguageOptions(),
-              
-              if(GetStorage().read("user_type") != 3) ...[
+              if (GetStorage().read("user_type") != 3) ...[
                 buildDivider(),
                 buildChangeProfileTextAndIcon(),
-              buildDivider(),
-              buildChangePrivacyPolicyTextAndIcon()
+                buildDivider(),
+                buildChangePrivacyPolicyTextAndIcon()
               ],
-              
             ],
           ),
         ),
@@ -464,7 +465,7 @@ class _SettingsState extends State<Settings> {
     return Container(
       margin: EdgeInsets.only(left: 15, right: 15, top: 20),
       child: customTextField(
-        isPasswordObscureText: true,
+          isPasswordObscureText: true,
           hintTextSize: 12,
           color: Colors.grey[300]!,
           height: 45,
@@ -479,7 +480,7 @@ class _SettingsState extends State<Settings> {
     return Container(
       margin: EdgeInsets.only(left: 15, right: 15, top: 20),
       child: customTextField(
-        isPasswordObscureText: true,
+          isPasswordObscureText: true,
           hintTextSize: 12,
           color: Colors.grey[300]!,
           height: 45,
@@ -494,7 +495,7 @@ class _SettingsState extends State<Settings> {
     return Container(
       margin: EdgeInsets.only(left: 15, right: 15, top: 20),
       child: customTextField(
-        isPasswordObscureText: true,
+          isPasswordObscureText: true,
           hintTextSize: 12,
           color: Colors.grey[300]!,
           height: 45,
