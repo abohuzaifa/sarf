@@ -27,9 +27,8 @@ class LocationView extends StatefulWidget {
 
 class _LocationViewState extends State<LocationView> {
   RegistrationController registrationController =
-      Get.find<RegistrationController>();
-  ProfileController profileController =
-      Get.put<ProfileController>(ProfileController());
+  Get.find<RegistrationController>();
+  ProfileController? profileController;
   String label = '';
   String address = '';
   String lat = '';
@@ -37,9 +36,8 @@ class _LocationViewState extends State<LocationView> {
   var locationLatGiven;
   var locationLngGiven;
 
-  var screenDecider = Get.arguments['Screen'] == 'From Profile Screen'
-      ? 'From Profile Screen'
-      : 'From Register Screen';
+  late final String screenDecider;
+  late final bool isFromRegistration;
 
   CameraPosition? cameraPosition;
   List<Marker> marker = [];
@@ -55,12 +53,19 @@ class _LocationViewState extends State<LocationView> {
     debugPrint('[LocationView] initState called');
     debugPrint('[LocationView] Get.arguments: ${Get.arguments}');
 
-    // Assign screenDecider safely
+    // Initialize screen decider
     screenDecider = (Get.arguments != null &&
         Get.arguments['Screen'] == 'From Profile Screen')
         ? 'From Profile Screen'
         : 'From Register Screen';
+
+    isFromRegistration = screenDecider == 'From Register Screen';
     debugPrint('[LocationView] Screen decider: $screenDecider');
+
+    // Only initialize profile controller if coming from profile screen
+    if (!isFromRegistration) {
+      profileController = Get.put<ProfileController>(ProfileController());
+    }
 
     // Check if we have valid location arguments
     if (Get.arguments != null &&
@@ -99,7 +104,6 @@ class _LocationViewState extends State<LocationView> {
       });
     }
   }
-
 
   Future<Position> _determinePosition() async {
     debugPrint('[LocationView] Determining position...');
@@ -147,7 +151,7 @@ class _LocationViewState extends State<LocationView> {
             position: argument,
           ));
           location =
-              "${placemarks.first.administrativeArea},${placemarks.first.subAdministrativeArea},${placemarks.first.subLocality}, ${placemarks.first.thoroughfare}, ${placemarks.first.street}, ${placemarks.first.country}";
+          "${placemarks.first.administrativeArea},${placemarks.first.subAdministrativeArea},${placemarks.first.subLocality}, ${placemarks.first.thoroughfare}, ${placemarks.first.street}, ${placemarks.first.country}";
           address = location;
           lat = argument.latitude.toString();
           lng = argument.longitude.toString();
@@ -158,6 +162,35 @@ class _LocationViewState extends State<LocationView> {
     }).catchError((error) {
       debugPrint('[LocationView] Error getting placemark: $error');
     });
+  }
+
+  void _saveLocationAndHandleNavigation() {
+    debugPrint('[LocationView] Done button tapped');
+    debugPrint('[LocationView] Selected location: $location');
+    debugPrint('[LocationView] Selected coordinates: lat=$lat, lng=$lng');
+
+    if (address.isEmpty || lat.isEmpty || lng.isEmpty) {
+      debugPrint('[LocationView] No location selected - showing error');
+      Get.snackbar('Error', 'Please select a location');
+      return;
+    }
+
+    if (isFromRegistration) {
+      debugPrint('[LocationView] Saving to registration controller');
+      registrationController.location.value = location;
+      registrationController.location_lat.value = lat;
+      registrationController.location_lng.value = lng;
+      debugPrint('[LocationView] Registration controller updated');
+      // No navigation back for registration screen
+      Get.back();
+    } else {
+      debugPrint('[LocationView] Saving to profile controller');
+      profileController?.location.value = location;
+      profileController?.location_lat.value = lat;
+      profileController?.location_lng.value = lng;
+      debugPrint('[LocationView] Profile controller updated - going back');
+      Get.back();
+    }
   }
 
   @override
@@ -199,41 +232,7 @@ class _LocationViewState extends State<LocationView> {
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 20),
                       child: InkWell(
-                        onTap: () {
-                          debugPrint('[LocationView] Done button tapped');
-                          debugPrint(
-                              '[LocationView] Selected location: $location');
-                          debugPrint(
-                              '[LocationView] Selected coordinates: lat=$lat, lng=$lng');
-
-                          if (address.isEmpty || lat.isEmpty || lng.isEmpty) {
-                            debugPrint(
-                                '[LocationView] No location selected - showing error');
-                            Get.snackbar('Error', 'Please select a location');
-                            return;
-                          }
-
-                          if (screenDecider == 'From Register Screen') {
-                            debugPrint(
-                                '[LocationView] Saving to registration controller');
-                            registrationController.location.value = location;
-                            registrationController.location_lat.value = lat;
-                            registrationController.location_lng.value = lng;
-                            debugPrint(
-                                '[LocationView] Registration controller updated - going back');
-                            Get.back();
-                          } else if (screenDecider == 'From Profile Screen') {
-                            debugPrint(
-                                '[LocationView] Saving to profile controller');
-                            profileController.location.value = location;
-                            profileController.location_lat.value = lat;
-                            profileController.location_lng.value = lng;
-                            debugPrint(
-                                '[LocationView] Profile controller updated - going back');
-                            Get.back();
-                          }
-                          debugPrint('[LocationView] After Get.back()');
-                        },
+                        onTap: _saveLocationAndHandleNavigation,
                         child: Container(
                           width: Get.width - 40,
                           padding: const EdgeInsets.symmetric(
@@ -243,9 +242,9 @@ class _LocationViewState extends State<LocationView> {
                               color: R.colors.themeColor),
                           child: Center(
                               child: Text(
-                            'Done'.tr,
-                            style: TextStyle(color: R.colors.white),
-                          )),
+                                'Done'.tr,
+                                style: TextStyle(color: R.colors.white),
+                              )),
                         ),
                       ),
                     ),
@@ -279,7 +278,7 @@ class _LocationViewState extends State<LocationView> {
                         final plist = GoogleMapsPlaces(
                           apiKey: googleMapsKey,
                           apiHeaders:
-                              await const GoogleApiHeaders().getHeaders(),
+                          await const GoogleApiHeaders().getHeaders(),
                         );
                         String placeid = value.placeId ?? "0";
                         debugPrint(
@@ -307,6 +306,7 @@ class _LocationViewState extends State<LocationView> {
                         });
                         debugPrint(
                             '[LocationView] Map updated with new location');
+                        Get.back();
                       }
                     });
                   },
