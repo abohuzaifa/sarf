@@ -1657,86 +1657,99 @@ class _RegistrationDetailsState extends State<RegistrationDetails> {
       ),
       child: InkWell(
         onTap: () async {
+          debugPrint('[LocationButton] Location button tapped');
+
           bool serviceEnabled;
           LocationPermission permission;
 
-          // Test if location services are enabled.
+          debugPrint('[LocationButton] Checking location services...');
           serviceEnabled = await Geolocator.isLocationServiceEnabled();
           if (!serviceEnabled) {
-            // Location services are not enabled don't continue
-            // accessing the position and request users of the
-            // App to enable the location services.
+            debugPrint('[LocationButton] Location services disabled - showing alert');
             Get.snackbar("Alert".tr, "Location services are disabled.".tr);
             return;
-            // Future.error('');
           }
 
+          debugPrint('[LocationButton] Checking location permissions...');
           permission = await Geolocator.checkPermission();
           if (permission == LocationPermission.denied) {
+            debugPrint('[LocationButton] Requesting location permissions...');
             permission = await Geolocator.requestPermission();
             if (permission == LocationPermission.denied) {
-              // Permissions are denied, next time you could try
-              // requesting permissions again (this is also where
-              // Android's shouldShowRequestPermissionRationale
-              // returned true. According to Android guidelines
-              // your App should show an explanatory UI now.
-              Get.snackbar("Alert".tr, "Location permissions are denied".tr);
+              debugPrint('[LocationButton] Location permissions denied - showing alert');
+              Get.snackbar("Alert".tr, "Location permissions are denied.".tr);
               return;
-              // Future.error('Location permissions are denied');
             }
           }
 
           if (permission == LocationPermission.deniedForever) {
-            // Permissions are denied forever, handle appropriately.
-            Get.snackbar("Alert".tr, "Location permissions are denied".tr);
+            debugPrint('[LocationButton] Location permissions permanently denied - showing alert');
+            Get.snackbar("Alert".tr, "Location permissions are permanently denied.".tr);
             return;
-            //  Future.error(
-            //   'Location permissions are permanently denied, we cannot request permissions.');
           }
+
+          debugPrint('[LocationButton] Showing loader...');
           openLoader();
-          await Geolocator.getCurrentPosition(
-                  desiredAccuracy: LocationAccuracy.high)
-              .then((value) {
-            Get.back();
+
+          try {
+            debugPrint('[LocationButton] Getting current position...');
+            final position = await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.high,
+            );
+
+            debugPrint('[LocationButton] Got position: lat=${position.latitude}, lng=${position.longitude}');
+            debugPrint('[LocationButton] Closing loader...');
+            Get.back(); // Close loader
+
+            debugPrint('[LocationButton] Adding small delay to avoid routing conflict...');
+            await Future.delayed(const Duration(milliseconds: 300));
+
+            debugPrint('[LocationButton] Navigating to LocationView...');
             Get.to(() => const LocationView(), arguments: {
               'Screen': 'From Register Screen',
-              "lat": value.latitude,
-              "lng": value.longitude
+              "lat": position.latitude,
+              "lng": position.longitude,
             });
-          });
-
-          //   Get.toNamed(RoutesName.RegistrationDetails);
+            debugPrint('[LocationButton] Navigation complete');
+          } catch (e) {
+            debugPrint('[LocationButton] Error getting location: $e');
+            Get.back(); // Ensure loader is closed
+            Get.snackbar("Error".tr, "Failed to get location: ${e.toString()}");
+          }
         },
         child: Row(
           children: [
             Container(
-                margin: const EdgeInsets.only(left: 10),
-                child: const Icon(
-                  Icons.pin_drop,
-                  size: 20,
-                  color: Colors.white,
-                )),
+              margin: const EdgeInsets.only(left: 10),
+              child: const Icon(
+                Icons.pin_drop,
+                size: 20,
+                color: Colors.white,
+              ),
+            ),
             Expanded(
               child: ListView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.all(0),
+                padding: EdgeInsets.zero,
                 children: [
                   Container(
-                      margin: const EdgeInsets.only(left: 20, top: 20),
-                      child: Obx(
-                        () => Text(
-                          registrationController.location.value != ''
-                              ? registrationController.location.value
-                              : 'Select Location'.tr,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontFamily: 'medium'),
+                    margin: const EdgeInsets.only(left: 20, top: 20),
+                    child: Obx(
+                          () => Text(
+                        registrationController.location.value != ''
+                            ? registrationController.location.value
+                            : 'Select Location'.tr,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontFamily: 'medium',
                         ),
-                      )),
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),

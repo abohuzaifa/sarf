@@ -41,348 +41,308 @@ class _LocationViewState extends State<LocationView> {
       ? 'From Profile Screen'
       : 'From Register Screen';
 
-  CameraPosition? cameraPosition = CameraPosition(
-    //innital position in map
-    target:
-        LatLng(Get.arguments['lat'], Get.arguments['lng']), //initial position
-    zoom: 20.0, //initial zoom level
-  );
-
+  CameraPosition? cameraPosition;
   List<Marker> marker = [];
-  GoogleMapController? mapController; //contrller for Google map
-
-  LatLng startLocation = LatLng(Get.arguments['lat'], Get.arguments['lng']);
+  GoogleMapController? mapController;
+  LatLng startLocation = LatLng(0, 0);
   String location = "Search".tr;
-  // BitmapDescriptor? customIcon;
+  bool hasValidLocation = false;
 
   @override
   void initState() {
-    // _determinePosition().then((value)async{
-    //   setState(() {
-    //     startLocation = LatLng(value.latitude, value.longitude);
-    //   });
-    //   locationLatGiven = value.latitude;
-
-    //   locationLngGiven = value.longitude;
-    // LatLng latLng = LatLng(value.latitude, value.longitude);
-    //    handleTap(latLng);
-    //    cameraPosition = CameraPosition(
-    //   //innital position in map
-    //   target: LatLng(locationLatGiven, locationLngGiven), //initial position
-    //   zoom: 20.0, //initial zoom level
-    // );
-
-    // }).catchError((error){
-    //   debugPrint(error.toString());
-    // });
-    // print(profileController.location_lng.value);
-    // print(profileController.location_lat.value);
-
-    //  addMarker();
     super.initState();
+
+    debugPrint('[LocationView] initState called');
+    debugPrint('[LocationView] Get.arguments: ${Get.arguments}');
+
+    // Assign screenDecider safely
+    screenDecider = (Get.arguments != null &&
+        Get.arguments['Screen'] == 'From Profile Screen')
+        ? 'From Profile Screen'
+        : 'From Register Screen';
+    debugPrint('[LocationView] Screen decider: $screenDecider');
+
+    // Check if we have valid location arguments
+    if (Get.arguments != null &&
+        Get.arguments['lat'] != null &&
+        Get.arguments['lng'] != null) {
+      debugPrint(
+          '[LocationView] Initializing with provided location: lat=${Get.arguments['lat']}, lng=${Get.arguments['lng']}');
+      startLocation = LatLng(Get.arguments['lat'], Get.arguments['lng']);
+      cameraPosition = CameraPosition(
+        target: startLocation,
+        zoom: 20.0,
+      );
+      hasValidLocation = true;
+    } else {
+      debugPrint('[LocationView] No location provided, getting current position');
+      _determinePosition().then((position) {
+        debugPrint(
+            '[LocationView] Got current position: lat=${position.latitude}, lng=${position.longitude}');
+        setState(() {
+          startLocation = LatLng(position.latitude, position.longitude);
+          cameraPosition = CameraPosition(
+            target: startLocation,
+            zoom: 20.0,
+          );
+          hasValidLocation = true;
+        });
+      }).catchError((error) {
+        debugPrint('[LocationView] Error getting position: $error');
+        setState(() {
+          startLocation = const LatLng(0, 0);
+          cameraPosition = CameraPosition(
+            target: startLocation,
+            zoom: 20.0,
+          );
+        });
+      });
+    }
   }
 
-  // void addMarker() async {
-  //   final Uint8List markerIcon =
-  //       await getBytesFromAsset('assets/images/location.png', 300);
-  //   //BitmapDescriptor.fromBytes(markerIcon)
 
-  //   customIcon = BitmapDescriptor.fromBytes(markerIcon);
-  // }
+  Future<Position> _determinePosition() async {
+    debugPrint('[LocationView] Determining position...');
+    bool serviceEnabled;
+    LocationPermission permission;
 
-  // Future<Uint8List> getBytesFromAsset(String path, int width) async {
-  //   ByteData data = await rootBundle.load(path);
-  //   ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List(),
-  //       targetWidth: width);
-  //   ui.FrameInfo fi = await codec.getNextFrame();
-  //   return (await fi.image.toByteData(format: ui.ImageByteFormat.png))!
-  //       .buffer
-  //       .asUint8List();
-  // }
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      debugPrint('[LocationView] Location services are disabled');
+      return Future.error('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      debugPrint('[LocationView] Requesting location permission');
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        debugPrint('[LocationView] Location permission denied');
+        return Future.error('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      debugPrint('[LocationView] Location permission permanently denied');
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
+    }
+
+    debugPrint('[LocationView] Getting current position...');
+    return await Geolocator.getCurrentPosition();
+  }
 
   void handleTap(LatLng argument) async {
-    debugPrint(argument.toString());
+    debugPrint('[LocationView] Map tapped at: $argument');
     await placemarkFromCoordinates(argument.latitude, argument.longitude)
         .then((value) {
       List<Placemark> placemarks = value;
       if (mounted) {
+        debugPrint(
+            '[LocationView] Found placemark: ${placemarks.first.toJson()}');
         setState(() {
           marker = [];
           marker.add(Marker(
             markerId: MarkerId(argument.toString()),
             position: argument,
-            // icon: customIcon!
           ));
-          // print(placemarks.first.toString());
           location =
               "${placemarks.first.administrativeArea},${placemarks.first.subAdministrativeArea},${placemarks.first.subLocality}, ${placemarks.first.thoroughfare}, ${placemarks.first.street}, ${placemarks.first.country}";
           address = location;
           lat = argument.latitude.toString();
           lng = argument.longitude.toString();
         });
+        debugPrint('[LocationView] Updated location: $location');
+        debugPrint('[LocationView] Updated coordinates: lat=$lat, lng=$lng');
       }
+    }).catchError((error) {
+      debugPrint('[LocationView] Error getting placemark: $error');
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('[LocationView] Building widget');
     return Scaffold(
-      // backgroundColor: R.colors.lightGrey,
       body: SafeArea(
-          child: Stack(
-        children: [
-          //  newOrderScreenAppBar("selectlocation".tr),
-          //  Sizes.h20,
-          Stack(
-            children: [
-              GoogleMap(
-                //Map widget from google_maps_flutter package
-                zoomGesturesEnabled: true, //enable Zoom in, out on map
-                initialCameraPosition: cameraPosition!,
-                myLocationButtonEnabled: false,
-                myLocationEnabled: false,
-                zoomControlsEnabled: false,
-                padding: const EdgeInsets.only(top: 130),
-                mapType: MapType.normal, //map type
-                onMapCreated: (controller) {
-                  //method called when map is created
-                  setState(() {
-                    mapController = controller;
-                    marker.add(Marker(
-                        markerId: const MarkerId('default'),
-                        position: startLocation));
-                    // handleTap(argument);
-                  });
-                  handleTap(startLocation);
-                },
-                onTap: handleTap,
-                markers: Set.from(marker),
-                onCameraMove: (CameraPosition cameraPositiona) {
-                  cameraPosition = cameraPositiona;
-                },
-                onCameraIdle: () async {
-                  //   List<Placemark> placemarks = await placemarkFromCoordinates(cameraPosition!.target.latitude, cameraPosition!.target.longitude);
-                  //  print(placemarks.first);
-                  //   setState(() {
-                  //      location = placemarks.first.administrativeArea.toString() + ", " +  placemarks.first.street.toString() + ',' + placemarks.first.country.toString();
-                  //   });
-                },
-              ),
-
-              //search autoconplete input
-              Positioned(
-                //search input bar
-                bottom: 10,
-
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: InkWell(
-                    onTap: () {
-                      print(
-                          "This is selected Location====================${location.toString()}");
-                      print(
-                          "This is selected Latitude====================${lat.toString()}");
-                      print(
-                          "This is selected Longitude====================${lng.toString()}");
-
-                      if (screenDecider == 'From Register Screen') {
-                        print(screenDecider);
-                        print('Storing in register');
-                        registrationController.location.value = location;
-                        registrationController.location_lat.value = lat;
-                        registrationController.location_lng.value = lng;
-                        print(
-                            "This is stored Location====================${registrationController.location.toString()}");
-                        print(
-                            "This is stored Location Lat====================${registrationController.location_lat.toString()}");
-                        print(
-                            "This is stored Location Lng====================${registrationController.location_lng.toString()}");
-                      }
-                      if (screenDecider == 'From Profile Screen') {
-                        print(screenDecider);
-                        print('Storing in profile');
-                        profileController.location.value = location;
-                        profileController.location_lat.value = lat;
-                        profileController.location_lng.value = lng;
-                        print(
-                            "This is stored Location====================${profileController.location.toString()}");
-                        print(
-                            "This is stored Location Lat====================${profileController.location_lat.toString()}");
-                        print(
-                            "This is stored Location Lng====================${profileController.location_lng.toString()}");
-                      }
-
-                      Get.back();
+        child: Stack(
+          children: [
+            if (hasValidLocation)
+              Stack(
+                children: [
+                  GoogleMap(
+                    zoomGesturesEnabled: true,
+                    initialCameraPosition: cameraPosition!,
+                    myLocationButtonEnabled: false,
+                    myLocationEnabled: false,
+                    zoomControlsEnabled: false,
+                    padding: const EdgeInsets.only(top: 130),
+                    mapType: MapType.normal,
+                    onMapCreated: (controller) {
+                      debugPrint('[LocationView] Map created');
+                      setState(() {
+                        mapController = controller;
+                        marker.add(Marker(
+                            markerId: const MarkerId('default'),
+                            position: startLocation));
+                      });
+                      handleTap(startLocation);
                     },
+                    onTap: handleTap,
+                    markers: Set.from(marker),
+                    onCameraMove: (CameraPosition cameraPositiona) {
+                      cameraPosition = cameraPositiona;
+                    },
+                  ),
+                  Positioned(
+                    bottom: 10,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: InkWell(
+                        onTap: () {
+                          debugPrint('[LocationView] Done button tapped');
+                          debugPrint(
+                              '[LocationView] Selected location: $location');
+                          debugPrint(
+                              '[LocationView] Selected coordinates: lat=$lat, lng=$lng');
+
+                          if (address.isEmpty || lat.isEmpty || lng.isEmpty) {
+                            debugPrint(
+                                '[LocationView] No location selected - showing error');
+                            Get.snackbar('Error', 'Please select a location');
+                            return;
+                          }
+
+                          if (screenDecider == 'From Register Screen') {
+                            debugPrint(
+                                '[LocationView] Saving to registration controller');
+                            registrationController.location.value = location;
+                            registrationController.location_lat.value = lat;
+                            registrationController.location_lng.value = lng;
+                            debugPrint(
+                                '[LocationView] Registration controller updated - going back');
+                            Get.back();
+                          } else if (screenDecider == 'From Profile Screen') {
+                            debugPrint(
+                                '[LocationView] Saving to profile controller');
+                            profileController.location.value = location;
+                            profileController.location_lat.value = lat;
+                            profileController.location_lng.value = lng;
+                            debugPrint(
+                                '[LocationView] Profile controller updated - going back');
+                            Get.back();
+                          }
+                          debugPrint('[LocationView] After Get.back()');
+                        },
+                        child: Container(
+                          width: Get.width - 40,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 15),
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              color: R.colors.themeColor),
+                          child: Center(
+                              child: Text(
+                            'Done'.tr,
+                            style: TextStyle(color: R.colors.white),
+                          )),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Center(
+                child: CircularProgressIndicator(),
+              ),
+            customAppBar('Select Location'.tr, true, true, '', false, () {}),
+            if (hasValidLocation)
+              Container(
+                margin: const EdgeInsets.only(top: 75),
+                child: InkWell(
+                  onTap: () async {
+                    debugPrint('[LocationView] Search location tapped');
+                    var place = await PlacesAutocomplete.show(
+                        context: context,
+                        apiKey: googleMapsKey,
+                        mode: Mode.overlay,
+                        types: [],
+                        strictbounds: false,
+                        onError: (err) {
+                          debugPrint(
+                              '[LocationView] PlacesAutocomplete error: ${err.errorMessage}');
+                        }).then((value) async {
+                      if (value != null) {
+                        debugPrint(
+                            '[LocationView] Place selected: ${value.description}');
+                        final plist = GoogleMapsPlaces(
+                          apiKey: googleMapsKey,
+                          apiHeaders:
+                              await const GoogleApiHeaders().getHeaders(),
+                        );
+                        String placeid = value.placeId ?? "0";
+                        debugPrint(
+                            '[LocationView] Getting place details for ID: $placeid');
+                        final detail = await plist.getDetailsByPlaceId(placeid);
+                        final geometry = detail.result.geometry!;
+                        final lat = geometry.location.lat;
+                        final lang = geometry.location.lng;
+                        var newlatlang = LatLng(lat, lang);
+                        debugPrint(
+                            '[LocationView] Place coordinates: lat=$lat, lng=$lang');
+
+                        mapController?.animateCamera(
+                            CameraUpdate.newCameraPosition(
+                                CameraPosition(target: newlatlang, zoom: 17)));
+                        setState(() {
+                          marker.clear();
+                          location = value.description.toString();
+                          marker.add(Marker(
+                              markerId: MarkerId('$newlatlang'),
+                              position: newlatlang));
+                          address = location;
+                          this.lat = lat.toString();
+                          lng = lang.toString();
+                        });
+                        debugPrint(
+                            '[LocationView] Map updated with new location');
+                      }
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(15),
                     child: Container(
-                      width: Get.width - 40,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 15),
+                      height: 40,
+                      padding: EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          color: R.colors.themeColor),
-                      child: Center(
-                          child: Text(
-                        'Done'.tr,
-                        style: TextStyle(color: R.colors.white),
-                      )),
+                        borderRadius: BorderRadius.circular(40),
+                        color: R.colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: R.colors.lightGrey,
+                            offset: const Offset(0, 1),
+                            blurRadius: 2,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.all(0),
+                        width: MediaQuery.of(context).size.width - 40,
+                        child: Text(
+                          location.tr,
+                          style: const TextStyle(fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
-          customAppBar('Select Location'.tr, true, true, '', false, () {}),
-          Container(
-            margin: const EdgeInsets.only(top: 75),
-            child: InkWell(
-                onTap: () async {
-                  var place = await PlacesAutocomplete.show(
-                      context: context,
-                      apiKey: googleMapsKey,
-                      mode: Mode.overlay,
-                      types: [],
-                      strictbounds: false,
-                      //components: [Component(Component.country, 'np')],
-                      //google_map_webservice package
-                      onError: (err) {
-                        debugPrint(err.errorMessage);
-                        debugPrint("hahahaah");
-                      }).then((value) async {
-                    if (value != null) {
-                      //  print(value);
-
-                      //form google_maps_webservice package
-                      final plist = GoogleMapsPlaces(
-                        apiKey: googleMapsKey,
-                        apiHeaders: await const GoogleApiHeaders().getHeaders(),
-                        //from google_api_headers package
-                      );
-                      String placeid = value.placeId ?? "0";
-                      final detail = await plist.getDetailsByPlaceId(placeid);
-                      final geometry = detail.result.geometry!;
-                      final lat = geometry.location.lat;
-                      final lang = geometry.location.lng;
-                      var newlatlang = LatLng(lat, lang);
-
-                      //move map camera to selected place with animation
-                      mapController?.animateCamera(
-                          CameraUpdate.newCameraPosition(
-                              CameraPosition(target: newlatlang, zoom: 17)));
-                      setState(() {
-                        marker.clear();
-                        location = value.description.toString();
-                        marker.add(Marker(
-                            markerId: MarkerId('$newlatlang'),
-                            position: newlatlang));
-                        address = location;
-                        this.lat = lat.toString();
-                        lng = lang.toString();
-                      });
-                    }
-                  });
-
-                  debugPrint(place.toString());
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(15),
-                  child: Container(
-                    height: 40,
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(40),
-                      color: R.colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: R.colors.lightGrey,
-                          offset: const Offset(0, 1),
-                          blurRadius: 2,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.all(0),
-                      width: MediaQuery.of(context).size.width - 40,
-                      child: Text(
-                        location.tr,
-                        style: const TextStyle(fontSize: 14),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                )),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.only(bottom: 20),
-            // child: Container(
-            //     margin: const EdgeInsets.only(left: 25, right: 25),
-            //     child: customButton(() {
-            //       if(address == ''){
-            //         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Choose an Address')));
-            //         return;
-            //       }
-            //       if(lat == ''){
-            //         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Choose an Address')));
-            //         return;
-            //       }
-            //       if(lng == ''){
-            //         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Choose an Address')));
-            //         return;
-            //       }
-            //       Get.dialog(addNametoLocationDilaog(address,lat,lng,context));
-            //     }, "proceed".tr)),
-          )
-        ],
-      )
-          // Column(
-          //   children: [
-          //     newOrderScreenAppBar("selectlocation".tr),
-          //     Sizes.h20,
-          //     //Expanded(child: PlacePicker(googleMapsKey)),
-
-          //                   /* Expanded(
-          //                      child: PlacePicker(
-          //                                 apiKey: googleMapsKey,
-          //                                // initialPosition: LatLng(34, 72),
-          //                                 useCurrentLocation: true,
-          //                                 selectInitialPosition: true,
-
-          //                                 usePlaceDetailSearch: true,
-          //                                 onPlacePicked: (result) {
-          //                                          // ctr.setLocation(result.geometry!.location.lat, result.geometry!.location.lng, result.formattedAddress!);
-          //                                   print(result.formattedAddress!);
-          //                                 //Navigator.of(context).pop();
-          //                                 //Navigator.pushNamed(context, RouteNames.searchRealEstate);
-
-          //                                 setState(() {
-
-          //                                 });
-          //                                   },
-          //                                // autocompleteRadius: 500000,
-          //                                 initialPosition: const LatLng(34, 72),
-
-          //                                 /*autocompleteComponents: [
-          //                                   gmap.Component(
-          //                                       gmap.Component.country, "pk")
-          //                                 ],*/
-          //                               ),
-          //                    ),*/
-
-          //     Sizes.h20,
-          //    // searchLocationField(),
-          //     Padding(
-          //       padding: const EdgeInsets.only(bottom: 20),
-          //       child: Container(
-          //           margin: EdgeInsets.only(left: 25, right: 25),
-          //           child: customButton(() {
-          //             Get.dialog(addNametoLocationDilaog());
-          //           }, "proceed".tr)),
-          //     )
-          //   ],
-          // ),
-          ),
+          ],
+        ),
+      ),
     );
   }
 }

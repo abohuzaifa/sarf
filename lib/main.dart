@@ -148,6 +148,8 @@ void _initializeControllers() {
   Get.put<PrivacyController>(PrivacyController());
   Get.put<AboutController>(AboutController());
   Get.put<SupportController>(SupportController());
+  Get.put(RegistrationController(), permanent: true);
+
   debugPrint('🎮 Controllers registered');
 }
 

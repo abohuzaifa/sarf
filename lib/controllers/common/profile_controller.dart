@@ -50,10 +50,18 @@ class ProfileController extends GetxController {
   }
 
   Future getProfile() async {
-    // Log: Loading started
     print('[ProfileController] Starting profile loading...');
 
     try {
+      // Check if token exists
+      final token = GetStorage().read('user_token');
+      if (token == null || token.isEmpty) {
+        print('[ProfileController] No token available, skipping API call');
+        await clearUserData();
+        Get.offAllNamed(RoutesName.LogIn);
+        return;
+      }
+
       // Configure loading indicator
       EasyLoading.instance
         ..loadingStyle = EasyLoadingStyle.custom
@@ -75,7 +83,8 @@ class ProfileController extends GetxController {
 
       // Make API call
       print('[ProfileController] Making API call to ${ApiLinks.profile}');
-      var response = await DioClient().post(ApiLinks.profile, request)
+      var response = await DioClient()
+          .post(ApiLinks.profile, request)
           .catchError((error) async {
         print('[ProfileController] API Error: $error');
 
@@ -95,24 +104,7 @@ class ProfileController extends GetxController {
           print('[ProfileController] API Error Details: $apiError');
         } else {
           print('[ProfileController] Other Error: $error');
-          EasyLoading.dismiss();
-          Get.back();
-
-          // Clear storage
-          print('[ProfileController] Clearing storage data...');
-          await GetStorage().remove('user_token');
-          await GetStorage().remove('groupId');
-          await GetStorage().remove('userId');
-          await GetStorage().remove('name');
-          await GetStorage().remove('username');
-          await GetStorage().remove('email');
-          await GetStorage().remove('firebase_email');
-          await GetStorage().remove('mobile');
-          await GetStorage().remove('photo');
-          await GetStorage().remove('status');
-
-          print('[ProfileController] Navigating to login screen');
-          Get.offAllNamed(RoutesName.LogIn);
+          await handleApiError();
         }
       });
 
@@ -121,46 +113,14 @@ class ProfileController extends GetxController {
         return;
       }
 
-      print('[ProfileController] API Response received: ${response.toString()}');
+      print(
+          '[ProfileController] API Response received: ${response.toString()}');
       message = response['message'];
       print('[ProfileController] Message from response: $message');
 
       if (response['success'] == true) {
         print('[ProfileController] Successful response, parsing data...');
-
-        // Parse profile model
-        profileModel = ProfileModel.fromJson(response);
-        print('[ProfileController] Profile model parsed successfully');
-
-        try {
-          // Update form fields
-          nameController.text = profileModel!.user!.name ?? '';
-          userNameController.text = profileModel!.user!.username ?? '';
-          emailController.text = profileModel!.user!.email ?? '';
-          mobileController.text = profileModel!.user!.mobile ?? '';
-          instaController.text = profileModel!.user!.userDetail?.instaLink ?? '';
-          twitterController.text = profileModel!.user!.userDetail?.twitterLink ?? '';
-          contactController.text = profileModel!.user!.userDetail?.contactNo ?? '';
-          whatsappController.text = profileModel!.user!.userDetail?.whatsapp ?? '';
-          websiteController.text = profileModel!.user!.userDetail?.website ?? '';
-          location.value = profileModel!.user!.userDetail?.location ?? '';
-
-          print('[ProfileController] Form fields updated successfully');
-
-          // Save user data to storage
-          if (profileModel!.user!.name != null) {
-            await GetStorage().write('name', profileModel!.user!.name);
-            print('[ProfileController] User name saved to storage: ${profileModel!.user!.name}');
-          }
-
-          EasyLoading.dismiss();
-          update();
-          print('[ProfileController] Profile loaded and UI updated successfully');
-        } catch (e) {
-          print('[ProfileController] Error updating form fields: $e');
-          EasyLoading.dismiss();
-          throw e;
-        }
+        await handleSuccessfulResponse(response);
       } else {
         print('[ProfileController] API returned success=false');
         EasyLoading.dismiss();
@@ -182,6 +142,70 @@ class ProfileController extends GetxController {
 
     return null;
   }
+
+  Future<void> handleSuccessfulResponse(response) async {
+    try {
+      // Parse profile model
+      profileModel = ProfileModel.fromJson(response);
+      print('[ProfileController] Profile model parsed successfully');
+
+      // Update form fields
+      nameController.text = profileModel!.user!.name ?? '';
+      userNameController.text = profileModel!.user!.username ?? '';
+      emailController.text = profileModel!.user!.email ?? '';
+      mobileController.text = profileModel!.user!.mobile ?? '';
+      instaController.text = profileModel!.user!.userDetail?.instaLink ?? '';
+      twitterController.text =
+          profileModel!.user!.userDetail?.twitterLink ?? '';
+      contactController.text = profileModel!.user!.userDetail?.contactNo ?? '';
+      whatsappController.text = profileModel!.user!.userDetail?.whatsapp ?? '';
+      websiteController.text = profileModel!.user!.userDetail?.website ?? '';
+      location.value = profileModel!.user!.userDetail?.location ?? '';
+
+      print('[ProfileController] Form fields updated successfully');
+
+      // Save user data to storage
+      if (profileModel!.user!.name != null) {
+        await GetStorage().write('name', profileModel!.user!.name);
+        print(
+            '[ProfileController] User name saved to storage: ${profileModel!.user!.name}');
+      }
+
+      EasyLoading.dismiss();
+      update();
+      print('[ProfileController] Profile loaded and UI updated successfully');
+    } catch (e) {
+      print('[ProfileController] Error updating form fields: $e');
+      EasyLoading.dismiss();
+      throw e;
+    }
+  }
+
+  Future<void> handleApiError() async {
+    EasyLoading.dismiss();
+    Get.back();
+
+    // Clear storage
+    print('[ProfileController] Clearing storage data...');
+    await clearUserData();
+
+    print('[ProfileController] Navigating to login screen');
+    Get.offAllNamed(RoutesName.LogIn);
+  }
+
+  Future<void> clearUserData() async {
+    await GetStorage().remove('user_token');
+    await GetStorage().remove('groupId');
+    await GetStorage().remove('userId');
+    await GetStorage().remove('name');
+    await GetStorage().remove('username');
+    await GetStorage().remove('email');
+    await GetStorage().remove('firebase_email');
+    await GetStorage().remove('mobile');
+    await GetStorage().remove('photo');
+    await GetStorage().remove('status');
+  }
+
   Future getAccounts() async {
     accounts.value = UserAccounts();
     //check validation
