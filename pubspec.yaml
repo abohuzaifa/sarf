@@ -51,9 +51,9 @@ dependencies:
   flutter_image_compress: any
   qr_flutter: ^4.0.0
   flutter_launcher_icons: ^0.11.0
-  flutter_google_places_hoc081098: ^1.0.0-nullsafety.5
-  google_api_headers: ^1.1.1
-  google_maps_webservice: ^0.0.20-nullsafety.5
+  flutter_google_places_hoc081098: ^1.2.0
+  #google_api_headers: ^1.1.1
+  #google_maps_webservice: ^0.0.20-nullsafety.5
   geocoding: ^2.0.1
   google_maps_flutter: ^2.1.1
   flutter_easyloading: ^3.0.5
@@ -97,7 +97,7 @@ dependencies:
   universal_html: ^2.2.4
   sms_autofill: ^2.3.0
   # upgrader: ^5.1.0
-  new_version: ^0.3.1
+  #new_version: ^0.3.1
  # telephony: ^0.2.0
   
   

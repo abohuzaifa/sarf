@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:new_version/new_version.dart';
+//import 'package:new_version/new_version.dart';
 import 'package:sarf/controllers/auth/login_controller.dart';
 import 'package:sarf/resources/images.dart';
 import 'package:sarf/src/Auth/registration.dart';
@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     EasyLoading.dismiss();
-    final newVersion = NewVersion(androidId: 'com.sarf', iOSId: "com.sarf");
+   // final newVersion = NewVersion(androidId: 'com.sarf', iOSId: "com.sarf");
 
     // Timer(const Duration(milliseconds: 800), () {
     //   checkNewVersion(newVersion);
@@ -54,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
 
-  Future<void> checkNewVersion(NewVersion newVersion) async {
+/*  Future<void> checkNewVersion(NewVersion newVersion) async {
     try {
       // Log initialization
       debugPrint('[Version Check] Starting version check process...');
@@ -114,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } finally {
       debugPrint('[Version Check] Version check process completed');
     }
-  }
+  }*/
   @override
   Widget build(BuildContext context) {
     return WillPopScope(

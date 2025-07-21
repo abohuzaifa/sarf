@@ -18,7 +18,7 @@ import flutter_local_notifications
 import geolocator_apple
 import just_audio
 import location
-import package_info_plus_macos
+import package_info_plus
 import path_provider_foundation
 import share_plus
 import sqflite
